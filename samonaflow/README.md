@@ -535,6 +535,49 @@ tests/reminder-*.test.ts                          node:test coverage (`npm test`
 
 No schema or migration change was needed and applied migrations were not edited. PRD FR-07 is authoritative where the broader prompt text is more ambitious: the PRD requires manual `https://wa.me/` sharing, explicitly rules out the WhatsApp Business API and forbids claiming automatic delivery/customer receipt, and the applied schema only has the three manual statuses above plus a DATE follow-up field. Cancel/failed/automated-processing/provider behaviour is therefore documented as not representable rather than implemented as a fake state. The nested tenant API path replaces any flat PRD route.
 
+## Financial dashboard
+
+Read-only summary of the current business's cash position, receivables, income, expenses, trends, recent activity and reminders. It computes from existing invoice, payment, expense and reminder data; no schema or migration change was needed and nothing is written.
+
+### REST API
+
+All paths are nested under the verified business. Every endpoint is `GET` and requires a verified session plus a `BusinessMembership` for `(userId, businessId)`; a non-member receives the same not-found response as other business routes, so business existence is not revealed.
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/api/v1/businesses/:businessId/dashboard/summary` | Headline cash, receivable, income, expense and count metrics for a range |
+| `GET` | `/api/v1/businesses/:businessId/dashboard/trends` | Zero-filled income, expense and invoicing buckets |
+| `GET` | `/api/v1/businesses/:businessId/dashboard/receivables` | Open receivables, overdue first, then by due date (cursor paginated) |
+| `GET` | `/api/v1/businesses/:businessId/dashboard/recent-activity` | Invoices and active payments merged by timestamp |
+| `GET` | `/api/v1/businesses/:businessId/dashboard/reminders` | Overdue and upcoming reminders with counts |
+
+- **Summary** query: either `preset` (`last_30_days` | `this_month` | `last_month` | `year_to_date`) or `from` and `to` (`YYYY-MM-DD`, both inclusive, business timezone, maximum 366 days). Response fields: `availableCash`, `totalReceivables`, `overdueReceivables`, `invoicedInPeriod`, `incomeInPeriod`, `expensesInPeriod`, `netCashMovementInPeriod`, `upcomingExpenses`, `overdueExpenses`, `customerCount`, `issuedInvoiceCount`, reminder counts, `currency` and `range`. Money is returned as canonical decimal strings in minor units, with `byCurrency` breakdowns.
+- **Trends** query: `from`, `to`, `granularity` (`day` | `week` | `month`, default `month`). Buckets are zero-filled; weeks start on Monday.
+- **Receivables** query: `limit` (1–100, default 25) and `cursor`. Overdue invoices come first, then ordered by due date.
+- **Recent activity** query: `limit` (1–20, default 10).
+- **Reminders** takes no query parameters. It returns overdue reminders and reminders due in the next 7 business days, with counts.
+
+Errors use the standard envelope (`invalid_request`, `unauthenticated`, `business_forbidden`, `internal_error`). Query parameters are validated with Zod.
+
+### Metric definitions
+
+- **Outstanding** = invoice total minus active payments.
+- **Receivables** count only `SENT`, `PARTIALLY_PAID` and `OVERDUE` invoices with outstanding > 0.
+- **Overdue receivables** use the same overdue rule as `deriveDisplayStatus`.
+- **Income in period** = active payments by payment date. Reversed payments are excluded.
+- **Expenses in period** = `PAID` expenses by payment date.
+- **Net cash movement** = income minus expenses. It is **not** profit.
+- **Available cash** = opening balance plus net cash movement since the opening balance date. It is a manual position, not a bank balance.
+- **Invoiced in period** = issued invoices by issue date. It is shown separately from cash.
+- **Currency**: headline totals use the business currency only; other currencies appear in `byCurrency`. Expenses are treated as business currency because they have no currency column.
+
+### Known gaps
+
+- There is no reminder completion state, so reminder counts may be lower bounds.
+- Trends do not include an outstanding receivables series.
+- There is no forecasting or what-if simulator.
+
+
 ## Connection pooling
 
 - The transaction pooler (Supavisor, port 6543) multiplexes many short-lived connections and suits the serverless/Next.js runtime. It does not support prepared statements or session-level features, so the app runtime goes through the `@prisma/adapter-pg` adapter.

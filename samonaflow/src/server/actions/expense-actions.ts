@@ -18,6 +18,7 @@ import { zodFieldErrors } from "@/server/utils/api-response";
 import type { ExpenseFormState } from "@/types/expense-form";
 
 const LIST_PATH = "/dashboard/expenses";
+const DASHBOARD_PATH = "/dashboard";
 
 function formDataToInput(formData: FormData): Record<string, string> {
   const input: Record<string, string> = {};
@@ -67,6 +68,7 @@ export async function createExpenseAction(
   }
 
   revalidatePath(LIST_PATH);
+  revalidatePath(DASHBOARD_PATH);
   redirect(`${LIST_PATH}/${expenseId}`);
 }
 
@@ -99,6 +101,7 @@ export async function updateExpenseAction(
   }
 
   revalidatePath(LIST_PATH);
+  revalidatePath(DASHBOARD_PATH);
   revalidatePath(`${LIST_PATH}/${parsedId.data}`);
   redirect(`${LIST_PATH}/${parsedId.data}`);
 }
@@ -132,6 +135,7 @@ export async function markExpensePaidAction(
   }
 
   revalidatePath(LIST_PATH);
+  revalidatePath(DASHBOARD_PATH);
   revalidatePath(`${LIST_PATH}/${parsedId.data}`);
   redirect(`${LIST_PATH}/${parsedId.data}`);
 }
@@ -152,6 +156,7 @@ export async function cancelExpenseAction(formData: FormData): Promise<void> {
   }
 
   revalidatePath(LIST_PATH);
+  revalidatePath(DASHBOARD_PATH);
   revalidatePath(`${LIST_PATH}/${parsedId.data}`);
   redirect(LIST_PATH);
 }
