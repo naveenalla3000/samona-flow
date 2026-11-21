@@ -16,8 +16,10 @@ samonaFlow is a financial management SaaS platform for freelancers and independe
 ## Installation
 
 ```bash
-npm install
+npm ci
 ```
+
+The `postinstall` script runs `npx prisma generate` automatically, so the git-ignored client is generated after a fresh clone or install. Run `npx prisma generate` manually whenever you change `prisma/schema.prisma`.
 
 ## Development commands
 
@@ -34,7 +36,7 @@ npx tsc --noEmit   # TypeScript type check
 The database is PostgreSQL hosted on Supabase, accessed through Prisma 7.10.1 with the `prisma-client` generator.
 
 - Prisma config lives in `prisma.config.ts` at the project root. It loads `.env` via dotenv.
-- The generated client is written to `src/generated/prisma`. This folder is git-ignored, so run `npx prisma generate` after a fresh clone.
+- The generated client is written to `src/generated/prisma`. This folder is git-ignored; `npm ci` regenerates it via `postinstall`, and `npx prisma generate` regenerates it after schema changes.
 - The Prisma CLI (migrate, validate, studio) connects using `DIRECT_URL`.
 - The runtime app connects using `DATABASE_URL` through the `@prisma/adapter-pg` driver adapter, configured in `src/lib/prisma.ts`.
 
