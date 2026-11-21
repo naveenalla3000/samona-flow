@@ -1,6 +1,6 @@
 # samonaflow
 
-samonaFlow is a financial management SaaS platform for freelancers and independent professionals. The project is currently only the foundation: the application scaffold, architecture folders, a health-check API, and configuration. No business features are implemented yet.
+samonaFlow is a financial management SaaS platform for freelancers and independent professionals. The foundation includes the application scaffold, architecture folders, a health-check API, configuration, and Supabase email/password authentication with Prisma profile synchronization. No business features (onboarding, customers, invoices, etc.) are implemented yet.
 
 ## Technology stack
 
@@ -49,6 +49,7 @@ cp .env.example .env
 | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | Browser-exposed (`NEXT_PUBLIC_` prefix) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon (public) key | Browser-exposed (`NEXT_PUBLIC_` prefix) |
+| `NEXT_PUBLIC_APP_URL` | Public origin of this app, used for absolute Supabase redirect URLs | Browser-exposed (`NEXT_PUBLIC_` prefix) |
 | `DATABASE_URL` | PostgreSQL connection string used by Prisma at runtime | Server-only |
 | `DIRECT_URL` | Direct PostgreSQL connection string used by Prisma for migrations | Server-only |
 
@@ -67,6 +68,90 @@ Example placeholders (not real values):
 DATABASE_URL="postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?sslmode=require"
 DIRECT_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres?sslmode=require"
 ```
+
+There is deliberately **no** Supabase service-role key. The anon key is public, and all privileged work runs through server-only code.
+
+## Supabase Auth
+
+### Dashboard configuration
+
+1. **Authentication > Providers > Email**: keep the Email provider enabled.
+2. **Authentication > Providers > Email > Confirm email**: enable it. Signup then requires the user to click the verification link before a session or `UserProfile` is created.
+3. **Authentication > URL Configuration**:
+   - **Site URL**: `http://localhost:3000` locally, and the production origin in production.
+   - **Redirect URLs** (allow list) — add both local and production forms:
+     - `http://localhost:3000/auth/callback`
+     - `https://your-domain.example/auth/callback`
+   - Supabase only redirects to URLs matching this allow list; `NEXT_PUBLIC_APP_URL` must therefore match one of them.
+4. Optionally set the auth email template's confirmation link to point at your domain if you use a custom SMTP setup.
+
+`NEXT_PUBLIC_APP_URL` must be a full origin (scheme + host, no trailing path). It defaults to `http://localhost:3000` when unset.
+
+### Files
+
+```
+src/lib/supabase/
+  client.ts        browser client (anon key only)
+  server.ts        per-request server client using Next.js cookies
+  middleware.ts    session refresh + response cookie/cache-header handling
+  env.ts           runtime validation of public Supabase env vars
+src/proxy.ts                    Next.js 16 proxy (renamed middleware): refresh + route redirects
+src/server/auth/
+  actions.ts                    signInAction, signUpAction, signOutAction ("use server")
+  get-current-user.ts           server-side getUser() verification
+  require-auth.ts               redirecting guard for pages
+  api-auth.ts                   requireApiUser(): 401 guard for Route Handlers
+  verify-token.ts               stateless bearer-token verification
+  identity.ts / auth-types.ts / auth-errors.ts / profile-sync.ts
+src/lib/auth/safe-redirect.ts   open-redirect protection for `next`
+src/lib/validations/auth.ts     shared Zod login/signup schemas
+src/app/(auth)/
+  login/, signup/               forms (loading, validation, password toggle)
+  auth/callback/route.ts        PKCE/email-verification exchange
+src/components/auth/            shared form controls
+```
+
+### Authentication flow
+
+1. **Signup**: the form is validated with the shared Zod schema on the client and again in the Server Function. Supabase sends a verification email to `NEXT_PUBLIC_APP_URL/auth/callback?next=...`. While verification is pending, **no** `UserProfile` is created and no business records are created.
+2. **Callback**: the `code` is exchanged for a session. Only after Supabase confirms the user's email is an idempotent `UserProfile.upsert` performed, using the Supabase Auth UUID as `UserProfile.id`. The user is redirected to a validated local `next` path.
+3. **Login**: credentials are verified by Supabase; the session is written to secure cookies, the profile is re-synced (idempotently), and the user is redirected to a validated local path. Invalid credentials and unconfirmed emails produce friendly, generic errors.
+4. **Session refresh**: `src/proxy.ts` runs `getUser()` on each matched request, refreshes cookies, and applies the anti-caching headers required by `@supabase/ssr`. It also redirects unauthenticated visitors away from `/dashboard` and authenticated visitors away from `/login` and `/signup`.
+5. **Logout**: `supabase.auth.signOut()` clears the session; the user is redirected to `/login`.
+
+Cookies are `HttpOnly`, `SameSite=Lax`, `Path=/`, and `Secure` in production. No token or password is ever logged.
+
+### Protecting APIs
+
+The proxy is **not** an authorization boundary for APIs. Call the guard inside each protected Route Handler:
+
+```ts
+import { requireApiUser } from "@/server/auth/api-auth";
+
+export async function GET(request: Request) {
+  const auth = await requireApiUser(request);
+  if (!auth.ok) return auth.response; // 401 JSON
+  // auth.user.id is the verified Supabase UUID — never read a user id from
+  // params/body for identity.
+}
+```
+
+`requireApiUser` accepts either `Authorization: Bearer <access_token>` (verified with `getUser(token)`) or the SSR session cookie. Business/tenant authorization is intentionally not implemented yet.
+
+### Local testing
+
+```bash
+cp .env.example .env      # fill in Supabase URL and anon key
+npm run dev
+```
+
+1. Visit `http://localhost:3000/signup` and create an account with a real inbox.
+2. Confirm the email using the Supabase verification link (it must resolve to `/auth/callback`).
+3. You should land on `/dashboard`; verify `UserProfile` has a row with the same UUID as `auth.users`.
+4. Reload `/dashboard` to confirm session persistence, then sign out and confirm `/dashboard` redirects to `/login`.
+5. Request a protected API without a session to confirm a `401` response.
+
+With Cache Components enabled, the auth pages and `/dashboard` export `instant = false` because the session read happens at request time. Streaming/suspense-based static shells can be adopted later without changing the auth logic.
 
 ## Connection pooling
 
@@ -118,20 +203,25 @@ Folder map (`src/`):
 
 ```
 app/
-  (auth)/          authentication pages (route group)
+  (auth)/          login, signup, and auth/callback (route group)
   (dashboard)/     authenticated dashboard pages (route group)
   api/v1/          REST API route handlers (health check at api/v1/health)
   layout.tsx
   page.tsx
+proxy.ts           Next.js 16 session refresh and route redirects
 components/
+  auth/            authentication form controls
   ui/              generic UI primitives
   shared/          shared composite components
 modules/           feature modules (empty for now)
 lib/
+  auth/            redirect URL sanitization
   config/          configuration
+  supabase/        browser, server, and proxy Supabase clients
   utils/           generic helpers
   validations/     Zod schemas
 server/
+  auth/            session verification, guards, actions, profile sync
   controllers/     request handling logic called by route handlers
   services/        business logic
   repositories/    data access (Prisma)
