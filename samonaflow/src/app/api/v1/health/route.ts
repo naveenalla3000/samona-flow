@@ -1,12 +1,29 @@
-import { NextResponse } from "next/server";
+import { connection, NextResponse } from "next/server";
+import { checkDatabaseHealth } from "@/server/database/health";
 
-export function GET(): NextResponse {
+export async function GET(): Promise<NextResponse> {
+  await connection();
+  const health = await checkDatabaseHealth();
+
+  if (health.ok) {
+    return NextResponse.json(
+      {
+        success: true,
+        status: "ok",
+        database: "connected",
+        timestamp: new Date().toISOString(),
+      },
+      { status: 200 },
+    );
+  }
+
   return NextResponse.json(
     {
-      success: true,
-      message: "samonaflow API is healthy",
+      success: false,
+      status: "degraded",
+      database: "unavailable",
       timestamp: new Date().toISOString(),
     },
-    { status: 200 },
+    { status: 503 },
   );
 }
