@@ -5,6 +5,8 @@ import { resolveCurrentBusiness } from "@/server/auth/require-business";
 import { requireUser } from "@/server/auth/require-auth";
 import type { CustomerFormValues } from "@/types/customer-form";
 
+export const metadata = { title: "New customer" };
+
 export const instant = false;
 
 const EMPTY_VALUES: CustomerFormValues = {

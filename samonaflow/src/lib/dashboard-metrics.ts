@@ -11,6 +11,7 @@
 export type BucketGranularity = "day" | "week" | "month";
 export type DashboardPreset =
   | "last_30_days"
+  | "last_90_days"
   | "this_month"
   | "last_month"
   | "year_to_date";
@@ -145,6 +146,8 @@ export function resolvePreset(
   switch (preset) {
     case "last_30_days":
       return { from: addDays(today, -29), to: today };
+    case "last_90_days":
+      return { from: addDays(today, -89), to: today };
     case "this_month":
       return { from: firstOfThisMonth, to: today };
     case "last_month": {

@@ -93,8 +93,13 @@ function paidAmount(invoice: InvoiceForSummary): Prisma.Decimal {
 }
 
 function toDetail(row: CustomerRow & { invoices: InvoiceForSummary[] }): CustomerDetail {
-  // VOID invoices are kept in the history but excluded from financial totals.
-  const activeInvoices = row.invoices.filter((invoice) => invoice.status !== "VOID");
+  // Only issued invoices contribute to the customer's financial summary.
+  // DRAFT invoices are not yet a receivable, and VOID invoices are retained as
+  // history but no longer represent an obligation. Both stay in the invoice
+  // list below so the profile remains a complete record.
+  const activeInvoices = row.invoices.filter(
+    (invoice) => invoice.status !== "VOID" && invoice.status !== "DRAFT",
+  );
   const totalInvoiced = sum(activeInvoices.map((invoice) => invoice.totalAmount));
   const totalPaymentsReceived = sum(activeInvoices.map(paidAmount));
   const outstandingAmount = totalInvoiced.minus(totalPaymentsReceived);

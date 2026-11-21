@@ -8,6 +8,8 @@ import { customerIdSchema } from "@/lib/validations/customer";
 import { CustomerServiceError, customerService } from "@/server/services/customer-service";
 import type { CustomerDetail } from "@/types/customer";
 
+export const metadata = { title: "Edit customer" };
+
 export const instant = false;
 
 export default async function EditCustomerPage({

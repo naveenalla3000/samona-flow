@@ -4,7 +4,10 @@ import {
   buildBuckets,
   type BucketGranularity,
 } from "@/lib/dashboard-metrics";
+import type { ExpenseCategoryValue } from "@/lib/expense-status";
 import { prisma } from "@/server/database/connection";
+import type { ExpenseStatusValue } from "@/types/expense";
+import type { InvoiceStatusValue } from "@/types/invoice";
 
 /*
  * Business-scoped aggregation queries for the financial dashboard.
@@ -22,6 +25,8 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_RECEIVABLE_LIMIT = 100;
 const MAX_RECENT_LIMIT = 20;
+const MAX_EXPENSE_ROWS = 50;
+const MAX_TRANSACTION_ROWS = 20;
 const MAX_REMINDER_ROWS = 50;
 const REMINDER_UPCOMING_DAYS = 6;
 const DEFAULT_HORIZON_DAYS = 30;
@@ -74,19 +79,51 @@ export interface BucketRow {
 export interface ReceivableRow {
   id: string;
   invoiceNumber: string;
+  customerId: string;
   customerName: string;
   currency: string;
   totalAmount: string;
   amountPaid: string;
   outstanding: string;
   dueDate: string;
-  status: string;
+  daysOverdue: number;
+  status: InvoiceStatusValue;
+  displayStatus: InvoiceStatusValue;
   isOverdue: boolean;
+  isPartiallyPaid: boolean;
 }
 
 export interface ReceivablePage {
   rows: ReceivableRow[];
   nextCursor: string | null;
+}
+
+export interface UpcomingExpenseRow {
+  id: string;
+  title: string;
+  category: ExpenseCategoryValue;
+  amount: string;
+  dueDate: string;
+  status: ExpenseStatusValue;
+  isOverdue: boolean;
+}
+
+export interface PaymentTransactionRow {
+  id: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  customerName: string;
+  currency: string;
+  amount: string;
+  paymentDate: string;
+}
+
+export interface ExpenseTransactionRow {
+  id: string;
+  title: string;
+  category: ExpenseCategoryValue;
+  amount: string;
+  paymentDate: string;
 }
 
 export interface RecentInvoiceRow {
@@ -157,15 +194,38 @@ interface BucketRaw {
 interface ReceivableRaw {
   id: string;
   invoice_number: string;
+  customer_id: string;
   customer_name: string;
   currency: string;
   total_amount: Prisma.Decimal;
   amount_paid: Prisma.Decimal;
   outstanding: Prisma.Decimal;
   due_date: string;
+  days_overdue: number;
   status: string;
   is_overdue: boolean;
+  is_partially_paid: boolean;
   sort_rank: number;
+}
+
+interface UpcomingExpenseRaw {
+  id: string;
+  title: string;
+  category: string;
+  amount: Prisma.Decimal;
+  due_date: string;
+  status: string;
+  is_overdue: boolean;
+}
+
+interface PaymentTransactionRaw {
+  id: string;
+  invoice_id: string;
+  invoice_number: string;
+  customer_name: string;
+  currency: string;
+  amount: Prisma.Decimal;
+  payment_date: string;
 }
 
 function assertDate(value: string, label: string): string {
@@ -585,14 +645,17 @@ export class DashboardRepository {
       SELECT
         r.id,
         r.invoice_number,
+        cu.id AS customer_id,
         cu.name AS customer_name,
         r.currency,
         r.total_amount,
         r.amount_paid,
         r.outstanding,
         to_char(r.due_date, 'YYYY-MM-DD') AS due_date,
+        GREATEST(0, (${today}::date - r.due_date))::int AS days_overdue,
         r.status,
         r.is_overdue,
+        (r.status = 'PARTIALLY_PAID') AS is_partially_paid,
         r.sort_rank
       FROM ranked r
       JOIN customers cu ON cu.id = r.customer_id AND cu.business_id = r.business_id
@@ -608,17 +671,141 @@ export class DashboardRepository {
       rows: pageRows.map((r) => ({
         id: r.id,
         invoiceNumber: r.invoice_number,
+        customerId: r.customer_id,
         customerName: r.customer_name,
         currency: r.currency,
         totalAmount: money(r.total_amount),
         amountPaid: money(r.amount_paid),
         outstanding: money(r.outstanding),
         dueDate: r.due_date,
-        status: r.status,
+        daysOverdue: Number(r.days_overdue),
+        status: r.status as InvoiceStatusValue,
+        displayStatus: (r.is_overdue ? "OVERDUE" : r.status) as InvoiceStatusValue,
         isOverdue: r.is_overdue,
+        isPartiallyPaid: r.is_partially_paid,
       })),
       nextCursor: hasMore ? pageRows[pageRows.length - 1].id : null,
     };
+  }
+
+  /**
+   * Unpaid expenses ordered overdue first, then due date. PAID and CANCELLED
+   * rows are excluded so the dashboard never suggests a settled obligation.
+   */
+  async getUpcomingExpenseRows(
+    businessId: string,
+    today: string,
+    limit: number,
+  ): Promise<UpcomingExpenseRow[]> {
+    assertUuid(businessId, "businessId");
+    assertDate(today, "today");
+    const take = clampLimit(limit, MAX_EXPENSE_ROWS);
+
+    const rows = await this.db.$queryRaw<UpcomingExpenseRaw[]>(Prisma.sql`
+      SELECT
+        e.id,
+        e.title,
+        e.category::text AS category,
+        e.amount,
+        to_char(e.due_date, 'YYYY-MM-DD') AS due_date,
+        e.status::text AS status,
+        (e.status::text = 'OVERDUE' OR e.due_date < ${today}::date) AS is_overdue
+      FROM expenses e
+      WHERE e.business_id = ${businessId}::uuid
+        AND e.status::text IN ('UPCOMING', 'OVERDUE')
+      ORDER BY
+        (e.status::text = 'OVERDUE' OR e.due_date < ${today}::date) DESC,
+        e.due_date ASC,
+        e.id ASC
+      LIMIT ${take}
+    `);
+
+    return rows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      category: r.category as ExpenseCategoryValue,
+      amount: money(r.amount),
+      dueDate: r.due_date,
+      status: r.status as ExpenseStatusValue,
+      isOverdue: r.is_overdue,
+    }));
+  }
+
+  /**
+   * Active (non-reversed) payments for the recent-transactions feed. Each row
+   * is a real recorded receipt; no synthetic entries are created.
+   */
+  async getPaymentTransactionRows(
+    businessId: string,
+    limit: number,
+  ): Promise<PaymentTransactionRow[]> {
+    assertUuid(businessId, "businessId");
+    const take = clampLimit(limit, MAX_TRANSACTION_ROWS);
+
+    const rows = await this.db.$queryRaw<PaymentTransactionRaw[]>(Prisma.sql`
+      SELECT
+        p.id,
+        p.invoice_id,
+        i.invoice_number,
+        c.name AS customer_name,
+        i.currency::text AS currency,
+        p.amount,
+        to_char(p.payment_date, 'YYYY-MM-DD') AS payment_date
+      FROM payments p
+      JOIN invoices i ON i.id = p.invoice_id AND i.business_id = p.business_id
+      JOIN customers c ON c.id = i.customer_id AND c.business_id = i.business_id
+      WHERE p.business_id = ${businessId}::uuid
+        AND NOT EXISTS (
+          SELECT 1 FROM payment_reversals r
+          WHERE r.payment_id = p.id AND r.business_id = p.business_id
+        )
+      ORDER BY p.payment_date DESC, p.created_at DESC, p.id ASC
+      LIMIT ${take}
+    `);
+
+    return rows.map((r) => ({
+      id: r.id,
+      invoiceId: r.invoice_id,
+      invoiceNumber: r.invoice_number,
+      customerName: r.customer_name,
+      currency: r.currency,
+      amount: money(r.amount),
+      paymentDate: r.payment_date,
+    }));
+  }
+
+  /** PAID expenses for the recent-transactions feed, by payment date. */
+  async getPaidExpenseTransactionRows(
+    businessId: string,
+    limit: number,
+  ): Promise<ExpenseTransactionRow[]> {
+    assertUuid(businessId, "businessId");
+    const take = clampLimit(limit, MAX_TRANSACTION_ROWS);
+
+    const expenses = await this.db.expense.findMany({
+      where: {
+        businessId,
+        status: "PAID",
+        paymentDate: { not: null },
+      },
+      orderBy: [{ paymentDate: "desc" }, { updatedAt: "desc" }, { id: "asc" }],
+      take,
+      select: {
+        id: true,
+        title: true,
+        category: true,
+        amount: true,
+        paymentDate: true,
+      },
+    });
+
+    return expenses.map((e) => ({
+      id: e.id,
+      title: e.title,
+      category: e.category,
+      amount: money(e.amount),
+      paymentDate: dateOnly(e.paymentDate as Date),
+    }));
   }
 
   /** Most recent invoices (createdAt desc), max 20. */

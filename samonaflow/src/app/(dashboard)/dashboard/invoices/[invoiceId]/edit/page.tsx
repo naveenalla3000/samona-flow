@@ -10,6 +10,8 @@ import { InvoiceServiceError, invoiceService } from "@/server/services/invoice-s
 import type { InvoiceDetail } from "@/types/invoice";
 import type { InvoiceFormValues } from "@/types/invoice-form";
 
+export const metadata = { title: "Edit invoice" };
+
 export const instant = false;
 
 export default async function EditInvoicePage({

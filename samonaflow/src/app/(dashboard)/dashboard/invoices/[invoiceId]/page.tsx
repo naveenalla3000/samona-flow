@@ -18,6 +18,8 @@ import { InvoiceServiceError, invoiceService } from "@/server/services/invoice-s
 import { paymentService } from "@/server/services/payment-service";
 import type { InvoiceDetail } from "@/types/invoice";
 
+export const metadata = { title: "Invoice" };
+
 export const instant = false;
 
 const HISTORY_QUERY = listPaymentsQuerySchema.parse({ pageSize: 5 });

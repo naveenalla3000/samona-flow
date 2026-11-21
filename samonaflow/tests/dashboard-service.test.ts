@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { businessLocalDate } from "@/lib/business-date";
-import { headlineTotals, resolvePreset } from "@/lib/dashboard-metrics";
+import { addDays, headlineTotals, daysBetween, resolvePreset } from "@/lib/dashboard-metrics";
+import { calculateForecast } from "@/lib/forecast-math";
 import { parseMoney } from "@/lib/invoice-math";
+import type { ListAlertsQuery } from "@/lib/validations/alert";
 import type { AuthenticatedUser } from "@/server/auth/auth-types";
 import type {
   DashboardRepository,
@@ -10,7 +12,11 @@ import type {
   ReminderRow,
 } from "@/server/repositories/dashboard-repository";
 import { createDashboardService, DashboardServiceError } from "@/server/services/dashboard-service";
+import type { AlertCounts, AlertRecord } from "@/types/alert";
+import type { ForecastHorizon, ForecastResult } from "@/types/forecast";
+import { makeAlert, INVOICE_A } from "./helpers/alert-fakes";
 import { BUSINESS_A, BUSINESS_B, USER_A, USER_B, createFakeMemberships } from "./helpers/fakes";
+import { makeExpense, makeForecastInput, makeInvoice } from "./helpers/forecast-fakes";
 
 // In-memory fake repository. Amounts are 2dp major-unit strings in the store;
 // the fake derives every aggregate from the store, so mutations are reflected
@@ -20,6 +26,31 @@ import { BUSINESS_A, BUSINESS_B, USER_A, USER_B, createFakeMemberships } from ".
 type Payment = { id: string; currency: string; amount: string; paymentDate: string };
 type Invoice = { currency: string; status: string; issueDate: string; totalAmount: string; outstanding: string };
 type Expense = { currency: string; status: string; amount: string; paymentDate: string };
+type UpcomingExpense = {
+  id: string;
+  title: string;
+  category: string;
+  amount: string;
+  dueDate: string;
+  status: string;
+  isOverdue: boolean;
+};
+type TransactionPayment = {
+  id: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  customerName: string;
+  currency: string;
+  amount: string;
+  paymentDate: string;
+};
+type TransactionExpense = {
+  id: string;
+  title: string;
+  category: string;
+  amount: string;
+  paymentDate: string;
+};
 
 interface Store {
   profile: OpeningBalance;
@@ -29,6 +60,9 @@ interface Store {
   expenses: Expense[];
   customers: number;
   reminders: { overdue: ReminderRow[]; upcoming: ReminderRow[] };
+  upcomingExpenses: UpcomingExpense[];
+  transactionPayments: TransactionPayment[];
+  transactionExpenses: TransactionExpense[];
 }
 
 const ISSUED = ["SENT", "PARTIALLY_PAID", "OVERDUE"];
@@ -48,6 +82,9 @@ function makeStore(overrides: Partial<Store> = {}): Store {
     expenses: [],
     customers: 0,
     reminders: { overdue: [], upcoming: [] },
+    upcomingExpenses: [],
+    transactionPayments: [],
+    transactionExpenses: [],
     ...overrides,
   };
 }
@@ -148,6 +185,40 @@ function makeRepo(store: Store, overrides: Record<string, unknown> = {}) {
     })),
     getBucketedSeries: record("getBucketedSeries", async () => []),
     getReceivableRows: record("getReceivableRows", async () => ({ rows: [], nextCursor: null })),
+    getUpcomingExpenseRows: record(
+      "getUpcomingExpenseRows",
+      async (_b: string, _today: string, limit: number) =>
+        store.upcomingExpenses
+          .filter((e) => e.status === "UPCOMING" || e.status === "OVERDUE")
+          .sort(
+            (a, b) =>
+              Number(b.isOverdue) - Number(a.isOverdue) ||
+              a.dueDate.localeCompare(b.dueDate) ||
+              a.id.localeCompare(b.id),
+          )
+          .slice(0, limit),
+    ),
+    getPaymentTransactionRows: record(
+      "getPaymentTransactionRows",
+      async (_b: string, limit: number) =>
+        store.transactionPayments
+          .filter((p) => !store.reversals.includes(p.id))
+          .sort(
+            (a, b) =>
+              b.paymentDate.localeCompare(a.paymentDate) || a.id.localeCompare(b.id),
+          )
+          .slice(0, limit),
+    ),
+    getPaidExpenseTransactionRows: record(
+      "getPaidExpenseTransactionRows",
+      async (_b: string, limit: number) =>
+        store.transactionExpenses
+          .sort(
+            (a, b) =>
+              b.paymentDate.localeCompare(a.paymentDate) || a.id.localeCompare(b.id),
+          )
+          .slice(0, limit),
+    ),
     getRecentInvoices: record("getRecentInvoices", async () => []),
     getRecentActivePayments: record("getRecentActivePayments", async () => []),
   };
@@ -156,10 +227,87 @@ function makeRepo(store: Store, overrides: Record<string, unknown> = {}) {
   return { repo, calls };
 }
 
-function setup(store: Store = makeStore(), overrides: Record<string, unknown> = {}) {
+function forecastResult(horizon: ForecastHorizon = 30): ForecastResult {
+  return calculateForecast(
+    makeForecastInput({
+      horizonDays: horizon,
+      invoices: [
+        makeInvoice({
+          id: "70000000-0000-4000-8000-000000000010",
+          dueDate: "2026-01-20",
+          totalAmount: "100.00",
+        }),
+      ],
+      expenses: [
+        makeExpense({
+          id: "80000000-0000-4000-8000-000000000010",
+          dueDate: "2026-01-18",
+          amount: "50.00",
+        }),
+      ],
+    }),
+  );
+}
+
+function makeForecastService() {
+  const calls: { user: AuthenticatedUser; businessId: string; horizon: ForecastHorizon }[] = [];
+  return {
+    calls,
+    service: {
+      async getForecast(
+        user: AuthenticatedUser,
+        businessId: string,
+        query: { horizon: ForecastHorizon },
+      ): Promise<ForecastResult> {
+        calls.push({ user, businessId, horizon: query.horizon });
+        return forecastResult(query.horizon);
+      },
+    },
+  };
+}
+
+function makeAlertService(items: AlertRecord[] = []) {
+  const calls: { user: AuthenticatedUser; businessId: string; query: ListAlertsQuery }[] = [];
+  const counts: AlertCounts = {
+    active: items.length,
+    unread: items.filter((item) => !item.isRead).length,
+    critical: items.filter((item) => item.severity === "CRITICAL").length,
+    warning: items.filter((item) => item.severity === "WARNING").length,
+    info: items.filter((item) => item.severity === "INFO").length,
+  };
+  return {
+    calls,
+    service: {
+      async list(user: AuthenticatedUser, businessId: string, query: ListAlertsQuery) {
+        calls.push({ user, businessId, query });
+        return {
+          items,
+          total: items.length,
+          page: query.page,
+          pageSize: query.pageSize,
+          totalPages: items.length === 0 ? 0 : 1,
+          counts,
+        };
+      },
+    },
+  };
+}
+
+function setup(
+  store: Store = makeStore(),
+  overrides: Record<string, unknown> = {},
+  options: { alerts?: AlertRecord[] } = {},
+) {
   const { repo, calls } = makeRepo(store, overrides);
-  const service = createDashboardService({ repository: repo, memberships: createFakeMemberships() });
-  return { service, calls, store };
+  const forecast = makeForecastService();
+  const alerts = makeAlertService(options.alerts);
+  const service = createDashboardService({
+    repository: repo,
+    memberships: createFakeMemberships(),
+    forecast: forecast.service,
+    alerts: alerts.service,
+  });
+  return { service, calls, store, forecast, alerts };
 }
 
 const RANGE = { from: "2024-03-01", to: "2024-03-31" };
@@ -181,6 +329,10 @@ test("a non-member of business A is rejected on every operation and no repositor
     ["getSummary", () => service.getSummary(USER_B, BUSINESS_A, {})],
     ["getTrends", () => service.getTrends(USER_B, BUSINESS_A, TREND)],
     ["getReceivables", () => service.getReceivables(USER_B, BUSINESS_A, { limit: 25 })],
+    ["getUpcomingExpenses", () => service.getUpcomingExpenses(USER_B, BUSINESS_A, { limit: 10 })],
+    ["getCashFlow", () => service.getCashFlow(USER_B, BUSINESS_A, { horizon: 30 })],
+    ["getActions", () => service.getActions(USER_B, BUSINESS_A, { limit: 5 })],
+    ["getTransactions", () => service.getTransactions(USER_B, BUSINESS_A, { limit: 10 })],
     ["getRecentActivity", () => service.getRecentActivity(USER_B, BUSINESS_A, { limit: 10 })],
     ["getReminders", () => service.getReminders(USER_B, BUSINESS_A)],
   ];
@@ -207,23 +359,45 @@ test("a member of A passing businessId B is rejected and the repository never se
   const { service, calls } = setup();
   assert.equal(await codeOf(service.getSummary(USER_A, BUSINESS_B, {})), "BUSINESS_FORBIDDEN");
   assert.equal(await codeOf(service.getTrends(USER_A, BUSINESS_B, TREND)), "BUSINESS_FORBIDDEN");
+  assert.equal(
+    await codeOf(service.getUpcomingExpenses(USER_A, BUSINESS_B, { limit: 10 })),
+    "BUSINESS_FORBIDDEN",
+  );
+  assert.equal(
+    await codeOf(service.getCashFlow(USER_A, BUSINESS_B, { horizon: 30 })),
+    "BUSINESS_FORBIDDEN",
+  );
+  assert.equal(
+    await codeOf(service.getActions(USER_A, BUSINESS_B, { limit: 5 })),
+    "BUSINESS_FORBIDDEN",
+  );
+  assert.equal(
+    await codeOf(service.getTransactions(USER_A, BUSINESS_B, { limit: 10 })),
+    "BUSINESS_FORBIDDEN",
+  );
   assert.ok(!JSON.stringify(calls).includes(BUSINESS_B));
   assert.deepEqual(calls, []);
 });
 
 test("repository calls always receive the verified businessId, never a query value", async () => {
-  const { service, calls } = setup();
+  const { service, calls, forecast, alerts } = setup();
   const hostileSummary = { preset: "this_month" as const, businessId: BUSINESS_B };
   const hostileReceivables = { limit: 25, businessId: BUSINESS_B };
   const hostileActivity = { limit: 10, businessId: BUSINESS_B };
   await service.getSummary(USER_A, BUSINESS_A, hostileSummary);
   await service.getTrends(USER_A, BUSINESS_A, { ...TREND, businessId: BUSINESS_B } as typeof TREND);
   await service.getReceivables(USER_A, BUSINESS_A, hostileReceivables);
+  await service.getUpcomingExpenses(USER_A, BUSINESS_A, { limit: 10, businessId: BUSINESS_B } as never);
+  await service.getCashFlow(USER_A, BUSINESS_A, { horizon: 30, businessId: BUSINESS_B } as never);
+  await service.getActions(USER_A, BUSINESS_A, { limit: 5, businessId: BUSINESS_B } as never);
+  await service.getTransactions(USER_A, BUSINESS_A, { limit: 10, businessId: BUSINESS_B } as never);
   await service.getRecentActivity(USER_A, BUSINESS_A, hostileActivity);
   await service.getReminders(USER_A, BUSINESS_A);
   assert.ok(calls.length > 0);
   assert.ok(calls.every((call) => call.args[0] === BUSINESS_A), "every call uses BUSINESS_A");
   assert.ok(!JSON.stringify(calls).includes(BUSINESS_B));
+  assert.ok(forecast.calls.every((call) => call.businessId === BUSINESS_A));
+  assert.ok(alerts.calls.every((call) => call.businessId === BUSINESS_A));
 });
 
 test("summary income ignores a reversed payment and uses the repository's active total", async () => {
@@ -345,4 +519,301 @@ test("summary totals reflect each mutation: payment, reversal, invoice, expense"
   result = await read();
   assert.equal(result.totals.expensesInPeriod.amount, "3000");
   assert.equal(result.totals.netCashMovementInPeriod.amount, "-3000");
+});
+
+test("last_90_days resolves to 90 inclusive business-local days", async () => {
+  const { service } = setup(makeStore());
+  const result = await service.getSummary(USER_A, BUSINESS_A, { preset: "last_90_days" });
+  const expected = resolvePreset("last_90_days", businessLocalDate("Asia/Kolkata"));
+  assert.deepEqual(result.range, expected);
+  assert.equal(daysBetween(result.range.from, result.range.to) + 1, 90);
+});
+
+test("all four page presets resolve against the same business-local today", async () => {
+  const { service } = setup(makeStore());
+  const today = businessLocalDate("Asia/Kolkata");
+  const presets = ["this_month", "last_month", "last_30_days", "last_90_days"] as const;
+
+  for (const preset of presets) {
+    const result = await service.getSummary(USER_A, BUSINESS_A, { preset });
+    assert.deepEqual(result.range, resolvePreset(preset, today), preset);
+    assert.ok(result.range.from <= result.range.to, `${preset} has an ordered range`);
+    assert.ok(result.range.to <= today, `${preset} never ends in the future`);
+  }
+});
+
+test("upcoming expenses exclude paid/cancelled rows, order overdue first and derive display status", async () => {
+  const today = businessLocalDate("Asia/Kolkata");
+  const store = makeStore({
+    upcomingExpenses: [
+      {
+        id: "e-upcoming",
+        title: "Internet",
+        category: "INTERNET",
+        amount: "40.00",
+        dueDate: addDays(today, 10),
+        status: "UPCOMING",
+        isOverdue: false,
+      },
+      {
+        id: "e-overdue",
+        title: "Office rent",
+        category: "RENT",
+        amount: "500.00",
+        dueDate: addDays(today, -5),
+        status: "UPCOMING",
+        isOverdue: true,
+      },
+      {
+        id: "e-paid",
+        title: "Already paid",
+        category: "OTHER",
+        amount: "10.00",
+        dueDate: addDays(today, -20),
+        status: "PAID",
+        isOverdue: false,
+      },
+      {
+        id: "e-cancelled",
+        title: "Cancelled",
+        category: "OTHER",
+        amount: "20.00",
+        dueDate: addDays(today, -10),
+        status: "CANCELLED",
+        isOverdue: false,
+      },
+    ],
+  });
+  const { service, calls } = setup(store);
+
+  const result = await service.getUpcomingExpenses(USER_A, BUSINESS_A, { limit: 10 });
+
+  assert.deepEqual(result.rows.map((row) => row.id), ["e-overdue", "e-upcoming"]);
+  assert.equal(result.rows[0].displayStatus, "OVERDUE");
+  assert.equal(result.rows[0].isOverdue, true);
+  assert.equal(result.rows[1].displayStatus, "UPCOMING");
+  assert.equal(result.rows[0].currency, "USD");
+  const call = calls.find((entry) => entry.name === "getUpcomingExpenseRows");
+  assert.equal(call?.args[0], BUSINESS_A);
+  assert.equal(call?.args[1], today);
+});
+
+test("cash-flow overview delegates to the forecast engine and maps its result", async () => {
+  const { service, forecast } = setup(makeStore());
+  const result = await service.getCashFlow(USER_A, BUSINESS_A, { horizon: 60 });
+  const expected = forecastResult(60);
+
+  assert.equal(result.horizonDays, 60);
+  assert.equal(result.currentCash, expected.openingBalance);
+  assert.equal(result.expectedIncoming, expected.expectedIncoming);
+  assert.equal(result.expectedOutgoing, expected.expectedOutgoing);
+  assert.equal(result.netCashFlow, expected.netCashFlow);
+  assert.equal(result.projectedClosing, expected.projectedEndingBalance);
+  assert.equal(result.lowestProjectedBalance, expected.lowestProjectedBalance);
+  assert.equal(result.lowestProjectedDate, expected.lowestProjectedDate);
+  assert.equal(result.shortageDate, expected.shortageDate);
+  assert.equal(result.becomesNegative, expected.becomesNegative);
+  assert.equal(result.series.length, 60);
+  assert.deepEqual(result.series[0], {
+    date: expected.daily[0].date,
+    incoming: expected.daily[0].incoming,
+    outgoing: expected.daily[0].outgoing,
+    balance: expected.daily[0].projectedBalance,
+  });
+  assert.deepEqual(forecast.calls.map((call) => call.horizon), [60]);
+  assert.equal(forecast.calls[0].businessId, BUSINESS_A);
+});
+
+test("cash-flow overview preserves a negative projection and its shortage date", async () => {
+  const negative = calculateForecast(
+    makeForecastInput({
+      horizonDays: 30,
+      openingBalance: "-50.00",
+      invoices: [],
+      expenses: [],
+    }),
+  );
+  assert.equal(negative.becomesNegative, true);
+  const { repo } = makeRepo(makeStore());
+  const service = createDashboardService({
+    repository: repo,
+    memberships: createFakeMemberships(),
+    forecast: { async getForecast() { return negative; } },
+    alerts: makeAlertService().service,
+  });
+
+  const result = await service.getCashFlow(USER_A, BUSINESS_A, { horizon: 30 });
+  assert.equal(result.becomesNegative, true);
+  assert.equal(result.shortageDate, negative.shortageDate);
+  assert.equal(result.lowestProjectedBalance, negative.lowestProjectedBalance);
+  assert.equal(result.series[0].balance, negative.daily[0].projectedBalance);
+});
+
+test("action center delegates to the alert service, keeps critical-first order and links records", async () => {
+  const critical = makeAlert({
+    id: "91000000-0000-4000-8000-000000000001",
+    severity: "CRITICAL",
+    relatedEntityType: "INVOICE",
+    relatedEntityId: INVOICE_A,
+    isRead: false,
+  });
+  const forecastAlert = makeAlert({
+    id: "91000000-0000-4000-8000-000000000002",
+    type: "POTENTIAL_SHORTAGE",
+    severity: "WARNING",
+    relatedEntityType: "FORECAST",
+    relatedEntityId: null,
+    isRead: true,
+  });
+  const unlinked = makeAlert({
+    id: "91000000-0000-4000-8000-000000000003",
+    type: "CUSTOMER_CONCENTRATION",
+    severity: "INFO",
+    relatedEntityType: null,
+    relatedEntityId: null,
+    isRead: true,
+  });
+  const { service, alerts } = setup(makeStore(), {}, {
+    alerts: [critical, forecastAlert, unlinked],
+  });
+
+  const result = await service.getActions(USER_A, BUSINESS_A, { limit: 5 });
+
+  assert.deepEqual(result.items.map((item) => item.id), [
+    critical.id,
+    forecastAlert.id,
+    unlinked.id,
+  ]);
+  assert.equal(result.items[0].alertHref, `/dashboard/alerts/${critical.id}`);
+  assert.equal(result.items[0].record?.href, `/dashboard/invoices/${INVOICE_A}`);
+  assert.equal(result.items[1].record?.href, "/dashboard/forecast");
+  assert.equal(result.items[1].record?.id, null);
+  assert.equal(result.items[2].record, null);
+  assert.equal(result.items[0].isRead, false);
+  assert.equal(result.counts.critical, 1);
+  assert.equal(result.counts.warning, 1);
+  assert.equal(result.counts.unread, 1);
+  assert.equal(alerts.calls.length, 1);
+  assert.equal(alerts.calls[0].query.sort, "severity");
+  assert.equal(alerts.calls[0].query.direction, "desc");
+  assert.equal(alerts.calls[0].query.status, "active");
+  assert.equal(alerts.calls[0].query.pageSize, 5);
+  assert.equal(alerts.calls[0].businessId, BUSINESS_A);
+});
+
+test("recent transactions merge active payments and paid expenses, newest first", async () => {
+  const store = makeStore({
+    reversals: ["p-reversed"],
+    transactionPayments: [
+      {
+        id: "p-old",
+        invoiceId: "70000000-0000-4000-8000-000000000001",
+        invoiceNumber: "INV-0001",
+        customerName: "Acme Studio",
+        currency: "USD",
+        amount: "100.00",
+        paymentDate: "2026-01-10",
+      },
+      {
+        id: "p-new",
+        invoiceId: "70000000-0000-4000-8000-000000000002",
+        invoiceNumber: "INV-0002",
+        customerName: "Beta Labs",
+        currency: "USD",
+        amount: "25.00",
+        paymentDate: "2026-01-20",
+      },
+      {
+        id: "p-reversed",
+        invoiceId: "70000000-0000-4000-8000-000000000003",
+        invoiceNumber: "INV-0003",
+        customerName: "Gamma Co",
+        currency: "USD",
+        amount: "999.00",
+        paymentDate: "2026-01-25",
+      },
+    ],
+    transactionExpenses: [
+      {
+        id: "e-paid",
+        title: "Office rent",
+        category: "RENT",
+        amount: "50.00",
+        paymentDate: "2026-01-15",
+      },
+    ],
+  });
+  const { service } = setup(store);
+
+  const result = await service.getTransactions(USER_A, BUSINESS_A, { limit: 10 });
+
+  assert.deepEqual(result.items.map((item) => `${item.kind}:${item.id}`), [
+    "PAYMENT:p-new",
+    "EXPENSE:e-paid",
+    "PAYMENT:p-old",
+  ]);
+  assert.equal(result.items[0].direction, "in");
+  assert.equal(result.items[0].reference, "INV-0002");
+  assert.equal(result.items[0].href, "/dashboard/payments/p-new");
+  assert.equal(result.items[1].direction, "out");
+  assert.equal(result.items[1].href, "/dashboard/expenses/e-paid");
+  assert.equal(result.items[1].currency, "USD");
+  assert.ok(!result.items.some((item) => item.id === "p-reversed"));
+});
+
+test("recent transactions honor the requested limit after merging both sources", async () => {
+  const store = makeStore({
+    transactionPayments: [
+      {
+        id: "p-1",
+        invoiceId: "70000000-0000-4000-8000-000000000001",
+        invoiceNumber: "INV-0001",
+        customerName: "Acme Studio",
+        currency: "USD",
+        amount: "10.00",
+        paymentDate: "2026-01-20",
+      },
+      {
+        id: "p-2",
+        invoiceId: "70000000-0000-4000-8000-000000000002",
+        invoiceNumber: "INV-0002",
+        customerName: "Beta Labs",
+        currency: "USD",
+        amount: "20.00",
+        paymentDate: "2026-01-18",
+      },
+    ],
+    transactionExpenses: [
+      {
+        id: "e-1",
+        title: "Internet",
+        category: "INTERNET",
+        amount: "30.00",
+        paymentDate: "2026-01-19",
+      },
+    ],
+  });
+  const { service } = setup(store);
+
+  const result = await service.getTransactions(USER_A, BUSINESS_A, { limit: 2 });
+  assert.equal(result.items.length, 2);
+  assert.deepEqual(result.items.map((item) => item.id), ["p-1", "e-1"]);
+});
+
+test("new dashboard sections return useful empty shapes for an empty business", async () => {
+  const { service } = setup(makeStore());
+
+  const [upcoming, actions, transactions] = await Promise.all([
+    service.getUpcomingExpenses(USER_A, BUSINESS_A, { limit: 10 }),
+    service.getActions(USER_A, BUSINESS_A, { limit: 5 }),
+    service.getTransactions(USER_A, BUSINESS_A, { limit: 10 }),
+  ]);
+
+  assert.deepEqual(upcoming.rows, []);
+  assert.equal(upcoming.currency, "USD");
+  assert.deepEqual(actions.items, []);
+  assert.equal(actions.total, 0);
+  assert.equal(actions.counts.active, 0);
+  assert.deepEqual(transactions.items, []);
+  assert.equal(transactions.currency, "USD");
 });

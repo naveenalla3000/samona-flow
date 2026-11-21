@@ -14,6 +14,8 @@ import { resolveCurrentBusiness } from "@/server/auth/require-business";
 import { requireUser } from "@/server/auth/require-auth";
 import { reminderService } from "@/server/services/reminder-service";
 
+export const metadata = { title: "Reminders" };
+
 export const instant = false;
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

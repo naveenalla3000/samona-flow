@@ -164,6 +164,44 @@ test("archive preserves invoices and payment history on the customer profile", a
   assert.equal(data.getInvoices(BUSINESS_A, CUSTOMER_A).length, 1);
 });
 
+test("customer financial summary excludes draft and void invoices but keeps them in history", async () => {
+  const { service, data } = setup();
+  data.seedInvoice(BUSINESS_A, CUSTOMER_A, {
+    id: "50000000-0000-4000-8000-000000000011",
+    invoiceNumber: "INV-DRAFT",
+    issueDate: "2026-01-01",
+    dueDate: "2026-01-31",
+    status: "DRAFT",
+    totalAmount: "500.00",
+    amountPaid: "0.00",
+  });
+  data.seedInvoice(BUSINESS_A, CUSTOMER_A, {
+    id: "50000000-0000-4000-8000-000000000012",
+    invoiceNumber: "INV-VOID",
+    issueDate: "2026-01-01",
+    dueDate: "2026-01-31",
+    status: "VOID",
+    totalAmount: "250.00",
+    amountPaid: "0.00",
+  });
+  data.seedInvoice(BUSINESS_A, CUSTOMER_A, {
+    id: "50000000-0000-4000-8000-000000000013",
+    invoiceNumber: "INV-SENT",
+    issueDate: "2026-01-01",
+    dueDate: "2026-01-31",
+    status: "PARTIALLY_PAID",
+    totalAmount: "100.00",
+    amountPaid: "40.00",
+  });
+
+  const detail = await service.get(USER_A, BUSINESS_A, CUSTOMER_A);
+  assert.equal(detail.financials.invoiceCount, 3);
+  assert.equal(detail.financials.totalInvoiced, "100.00");
+  assert.equal(detail.financials.totalPaymentsReceived, "40.00");
+  assert.equal(detail.financials.outstandingAmount, "60.00");
+  assert.equal(detail.invoices.length, 3);
+});
+
 test("archived customers are hidden from the default list but available via filter", async () => {
   const { service } = setup();
   await service.archive(USER_A, BUSINESS_A, CUSTOMER_A);

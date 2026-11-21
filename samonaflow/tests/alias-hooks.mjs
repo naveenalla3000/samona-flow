@@ -1,8 +1,10 @@
 // Minimal Node ESM resolve hook so the built-in node:test runner can resolve
 // the project's TypeScript files and `@/` path aliases without new packages.
 import { existsSync, statSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import ts from "typescript";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourceRoot = path.join(projectRoot, "src");
@@ -43,5 +45,32 @@ export async function resolve(specifier, context, nextResolve) {
     return { url: pathToFileURL(resolved).href, shortCircuit: true };
   }
 
+  // Next's subpath entry points are CommonJS without an exports map that Node's
+  // ESM resolver accepts; tests only need the module shape, not Next's runtime.
+  if (specifier === "next/link") {
+    return nextResolve("next/link.js", context);
+  }
+
   return nextResolve(specifier, context);
+}
+
+// Node's built-in TypeScript support strips types but does not understand JSX,
+// so server-rendered component tests transpile .tsx on load.
+export async function load(url, context, nextLoad) {
+  if (url.endsWith(".tsx")) {
+    const fileName = fileURLToPath(url);
+    const source = await readFile(fileName, "utf8");
+    const { outputText } = ts.transpileModule(source, {
+      fileName,
+      compilerOptions: {
+        module: ts.ModuleKind.ESNext,
+        target: ts.ScriptTarget.ES2022,
+        jsx: ts.JsxEmit.ReactJSX,
+        esModuleInterop: true,
+      },
+    });
+    return { format: "module", source: outputText, shortCircuit: true };
+  }
+
+  return nextLoad(url, context);
 }

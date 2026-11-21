@@ -10,6 +10,8 @@ import { requireUser } from "@/server/auth/require-auth";
 import { PaymentServiceError, paymentService } from "@/server/services/payment-service";
 import type { PaymentDetail } from "@/types/payment";
 
+export const metadata = { title: "Payment" };
+
 export const instant = false;
 
 export default async function PaymentDetailPage({

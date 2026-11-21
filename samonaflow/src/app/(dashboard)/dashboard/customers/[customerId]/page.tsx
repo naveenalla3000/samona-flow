@@ -9,6 +9,8 @@ import { customerIdSchema } from "@/lib/validations/customer";
 import { CustomerServiceError, customerService } from "@/server/services/customer-service";
 import type { CustomerDetail } from "@/types/customer";
 
+export const metadata = { title: "Customer profile" };
+
 export const instant = false;
 
 function DetailRow({ label, value }: { label: string; value: string | null }) {

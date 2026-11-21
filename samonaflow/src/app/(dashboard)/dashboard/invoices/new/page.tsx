@@ -9,6 +9,8 @@ import { prismaInvoiceRepository } from "@/server/repositories/invoice-repositor
 import { customerService } from "@/server/services/customer-service";
 import type { InvoiceFormValues } from "@/types/invoice-form";
 
+export const metadata = { title: "New invoice" };
+
 export const instant = false;
 
 export default async function NewInvoicePage() {

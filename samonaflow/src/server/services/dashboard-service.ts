@@ -4,6 +4,11 @@
 // repository call receives that verified businessId. Money is computed in
 // BIGINT minor units via dashboard-metrics helpers and serialized as decimal
 // strings for JSON transport.
+//
+// The cash-flow overview and the Action Center deliberately delegate to the
+// existing forecasting and alert services. Their rules (eligibility, overdue
+// scheduling, dedupe, severity) live in one place and are never reimplemented
+// here.
 import {
   assertSpan,
   availableCash,
@@ -16,12 +21,18 @@ import {
   type HeadlineTotals,
 } from "@/lib/dashboard-metrics";
 import { businessLocalDate } from "@/lib/business-date";
+import { deriveDisplayStatus } from "@/lib/expense-status";
 import { parseMoney } from "@/lib/invoice-math";
+import { listAlertsQuerySchema } from "@/lib/validations/alert";
 import type {
+  ActionsQuery,
+  CashFlowQuery,
   ReceivablesQuery,
   RecentActivityQuery,
   SummaryQuery,
+  TransactionsQuery,
   TrendsQuery,
+  UpcomingExpensesQuery,
 } from "@/lib/validations/dashboard";
 import type { AuthenticatedUser } from "@/server/auth/auth-types";
 import {
@@ -32,6 +43,16 @@ import {
   dashboardRepository,
   type DashboardRepository,
 } from "@/server/repositories/dashboard-repository";
+import type { AlertRecord, AlertRelatedEntityType } from "@/types/alert";
+import type {
+  DashboardAction,
+  DashboardCashFlow,
+  DashboardTransaction,
+  DashboardUpcomingExpense,
+} from "@/types/dashboard";
+import type { ExpenseStatusValue } from "@/types/expense";
+import { alertService, type AlertService } from "./alert-service";
+import { forecastService, type ForecastService } from "./forecast-service";
 
 export type DashboardServiceErrorCode = "BUSINESS_FORBIDDEN" | "INVALID_REQUEST";
 
@@ -88,11 +109,64 @@ function resolveRange(query: SummaryQuery, today: string): { from: string; to: s
   });
 }
 
-export function createDashboardService(dependencies: {
+/**
+ * Links an alert to the record it refers to. Alert creation already validates
+ * that the referenced row belongs to the same business; the target page also
+ * re-checks membership and business scope on every request.
+ */
+function recordHref(type: AlertRelatedEntityType, id: string | null): string | null {
+  switch (type) {
+    case "INVOICE":
+      return id ? `/dashboard/invoices/${id}` : null;
+    case "EXPENSE":
+      return id ? `/dashboard/expenses/${id}` : null;
+    case "CUSTOMER":
+      return id ? `/dashboard/customers/${id}` : null;
+    case "FORECAST":
+      return "/dashboard/forecast";
+    default:
+      return null;
+  }
+}
+
+function toDashboardAction(alert: AlertRecord): DashboardAction {
+  const href =
+    alert.relatedEntityType !== null
+      ? recordHref(alert.relatedEntityType, alert.relatedEntityId)
+      : null;
+
+  return {
+    id: alert.id,
+    type: alert.type,
+    severity: alert.severity,
+    title: alert.title,
+    description: alert.description,
+    recommendedAction: alert.recommendedAction,
+    isRead: alert.isRead,
+    createdAt: alert.createdAt,
+    alertHref: `/dashboard/alerts/${alert.id}`,
+    record:
+      alert.relatedEntityType !== null && href !== null
+        ? {
+            type: alert.relatedEntityType,
+            id: alert.relatedEntityType === "FORECAST" ? null : alert.relatedEntityId,
+            href,
+          }
+        : null,
+  };
+}
+
+export interface DashboardServiceDependencies {
   repository: DashboardRepository;
   memberships: BusinessMembershipRepository;
-}) {
-  const { repository, memberships } = dependencies;
+  /** Existing forecast service; the dashboard never reimplements its rules. */
+  forecast: Pick<ForecastService, "getForecast">;
+  /** Existing alert service; the dashboard never creates or duplicates alerts. */
+  alerts: Pick<AlertService, "list">;
+}
+
+export function createDashboardService(dependencies: DashboardServiceDependencies) {
+  const { repository, memberships, forecast, alerts } = dependencies;
 
   async function authorize(user: AuthenticatedUser, businessId: string): Promise<VerifiedContext> {
     const membership = await memberships.findMembership(user.id, businessId);
@@ -239,6 +313,134 @@ export function createDashboardService(dependencies: {
       return { currency: ctx.currency, rows: page.rows, nextCursor: page.nextCursor };
     },
 
+    async getUpcomingExpenses(
+      user: AuthenticatedUser,
+      businessId: string,
+      query: UpcomingExpensesQuery,
+    ) {
+      const ctx = await authorize(user, businessId);
+      const rows = await repository.getUpcomingExpenseRows(
+        ctx.businessId,
+        ctx.today,
+        query.limit,
+      );
+
+      const items: DashboardUpcomingExpense[] = rows.map((row) => ({
+        id: row.id,
+        title: row.title,
+        category: row.category,
+        amount: row.amount,
+        dueDate: row.dueDate,
+        status: row.status,
+        displayStatus: deriveDisplayStatus(
+          row.status as ExpenseStatusValue,
+          row.dueDate,
+          ctx.today,
+        ),
+        isOverdue: row.isOverdue,
+        currency: ctx.currency,
+      }));
+
+      return { currency: ctx.currency, today: ctx.today, rows: items };
+    },
+
+    async getCashFlow(user: AuthenticatedUser, businessId: string, query: CashFlowQuery) {
+      // Authorize the dashboard request first so a non-member is rejected
+      // before the forecast service runs. The forecast service repeats the
+      // check and owns every projection rule.
+      await authorize(user, businessId);
+      const result = await forecast.getForecast(user, businessId, {
+        horizon: query.horizon,
+      });
+
+      const cashFlow: DashboardCashFlow = {
+        currency: result.currency,
+        horizonDays: result.horizonDays,
+        today: result.today,
+        startDate: result.startDate,
+        endDate: result.endDate,
+        calculatedAt: result.calculatedAt,
+        currentCash: result.openingBalance,
+        expectedIncoming: result.expectedIncoming,
+        expectedOutgoing: result.expectedOutgoing,
+        netCashFlow: result.netCashFlow,
+        projectedClosing: result.projectedEndingBalance,
+        lowestProjectedBalance: result.lowestProjectedBalance,
+        lowestProjectedDate: result.lowestProjectedDate,
+        shortageDate: result.shortageDate,
+        becomesNegative: result.becomesNegative,
+        series: result.daily.map((day) => ({
+          date: day.date,
+          incoming: day.incoming,
+          outgoing: day.outgoing,
+          balance: day.projectedBalance,
+        })),
+      };
+
+      return cashFlow;
+    },
+
+    async getActions(user: AuthenticatedUser, businessId: string, query: ActionsQuery) {
+      await authorize(user, businessId);
+      const result = await alerts.list(
+        user,
+        businessId,
+        listAlertsQuerySchema.parse({
+          pageSize: query.limit,
+          sort: "severity",
+          direction: "desc",
+          status: "active",
+        }),
+      );
+
+      return {
+        counts: result.counts,
+        total: result.total,
+        items: result.items.map(toDashboardAction),
+      };
+    },
+
+    async getTransactions(
+      user: AuthenticatedUser,
+      businessId: string,
+      query: TransactionsQuery,
+    ) {
+      const ctx = await authorize(user, businessId);
+      const [payments, expenses] = await Promise.all([
+        repository.getPaymentTransactionRows(ctx.businessId, query.limit),
+        repository.getPaidExpenseTransactionRows(ctx.businessId, query.limit),
+      ]);
+
+      const items: DashboardTransaction[] = [
+        ...payments.map((row) => ({
+          id: row.id,
+          kind: "PAYMENT" as const,
+          date: row.paymentDate,
+          description: `Payment from ${row.customerName}`,
+          reference: row.invoiceNumber,
+          amount: row.amount,
+          direction: "in" as const,
+          currency: row.currency,
+          href: `/dashboard/payments/${row.id}`,
+        })),
+        ...expenses.map((row) => ({
+          id: row.id,
+          kind: "EXPENSE" as const,
+          date: row.paymentDate,
+          description: row.title,
+          reference: null,
+          amount: row.amount,
+          direction: "out" as const,
+          currency: ctx.currency,
+          href: `/dashboard/expenses/${row.id}`,
+        })),
+      ]
+        .sort((a, b) => (a.date === b.date ? a.id.localeCompare(b.id) : b.date.localeCompare(a.date)))
+        .slice(0, query.limit);
+
+      return { currency: ctx.currency, items };
+    },
+
     async getRecentActivity(user: AuthenticatedUser, businessId: string, query: RecentActivityQuery) {
       const ctx = await authorize(user, businessId);
       const [invoices, payments] = await Promise.all([
@@ -261,4 +463,6 @@ export type DashboardService = ReturnType<typeof createDashboardService>;
 export const dashboardService: DashboardService = createDashboardService({
   repository: dashboardRepository,
   memberships: prismaBusinessMembershipRepository,
+  forecast: forecastService,
+  alerts: alertService,
 });

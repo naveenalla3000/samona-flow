@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./tests/alias-loader.mjs --test tests/*.test.ts",
+    "db:seed-demo": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./tests/alias-loader.mjs prisma/seed-demo.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

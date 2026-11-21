@@ -17,6 +17,8 @@ import { requireUser } from "@/server/auth/require-auth";
 import { AlertServiceError, alertService } from "@/server/services/alert-service";
 import type { AlertDetail } from "@/types/alert";
 
+export const metadata = { title: "Alert" };
+
 export const instant = false;
 
 const ACTION_LINK_CLASS =
