@@ -577,8 +577,417 @@ Errors use the standard envelope (`invalid_request`, `unauthenticated`, `busines
 
 - There is no reminder completion state, so reminder counts may be lower bounds.
 - Trends do not include an outstanding receivables series.
-- There is no forecasting or what-if simulator.
+- The what-if cash flow simulator is documented below.
 
+## Cash flow forecasting
+
+Deterministic 30, 60 or 90-day projection of the business's cash position. It reads the existing opening balance, invoices, active payments and unpaid expenses; it never writes, caches or changes financial records. No schema or migration change was needed.
+
+The forecast is an **estimate**. It does not claim a customer will pay on a particular date; it applies the documented date rules below and labels itself as an estimate with a last-calculation timestamp in the UI.
+
+### REST API
+
+All paths are nested under the verified business and require a verified session plus a `BusinessMembership` for `(userId, businessId)`. A non-member receives `business_forbidden` (403) and no data.
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/api/v1/businesses/:businessId/forecast` | Full forecast: summary, daily, weekly and monthly series plus breakdowns |
+| `GET` | `/api/v1/businesses/:businessId/forecast/daily` | Daily projected balances only |
+| `GET` | `/api/v1/businesses/:businessId/forecast/monthly` | Calendar-month summaries only |
+
+- **Horizon**: `horizon=30|60|90` or the PRD's `days=30|60|90`, default 30. Supplying both is rejected. Any other value is a `400 invalid_request` with a field error.
+- **Money** is a canonical 2-decimal string (for example `"1234.50"`, `"-400.00"`). The engine uses integer minor units (`BigInt`) internally; no floating-point arithmetic touches a financial value. Prisma `Decimal(12,2)` values are converted at the repository boundary.
+- **Dates** are `YYYY-MM-DD` business-calendar dates. Timestamps (for example `calculatedAt`) are ISO 8601.
+- Errors use the standard envelope: `invalid_request` (400), `unauthenticated` (401), `business_forbidden` (403), `internal_error` (500).
+
+### Formulas
+
+```text
+currentCash       = openingBalance
+                  + active payments since openingBalanceDate (inclusive)
+                  - PAID expenses since openingBalanceDate (inclusive)
+
+day opening       = previous day closing (currentCash on the first day)
+day closing       = day opening + expected receipts - expected expenses
+netCashFlow       = expected receipts - expected expenses
+projectedEnding   = closing balance on the horizon's last day
+lowest balance    = min(currentCash, every day closing)
+shortageDate      = first date with a negative closing balance
+                    (a negative currentCash counts on the start date)
+```
+
+Cumulative incoming and outgoing totals are carried per day. Weekly buckets are Monday-based and clipped to the forecast window; monthly buckets are calendar months. Both carry the last closing balance in the bucket.
+
+### Eligibility and date rules
+
+**Incoming receipts**
+
+- Include `SENT`, `PARTIALLY_PAID` and `OVERDUE` invoices.
+- Exclude `DRAFT`, `VOID` and `PAID` invoices.
+- The amount is the invoice's **outstanding balance**: total minus active, non-reversed payments. A partially paid invoice contributes only its remainder, never the full total.
+- Schedule date: `expectedPaymentDate` when present, otherwise `dueDate`. No date is invented.
+- An overdue invoice (its effective date is before the business-local today) is projected on the first forecast day. Dropping it would understate receivables; moving it to a future date would invent a payment promise.
+- Items whose effective date is after the horizon end are omitted; they appear in a longer horizon.
+
+**Outgoing expenses**
+
+- Include `UPCOMING` and `OVERDUE` expenses due on or before the horizon end.
+- Exclude `PAID` and `CANCELLED` expenses.
+- Schedule date: `dueDate`. Overdue expenses are projected on the first forecast day for the same reason as overdue invoices.
+- Expenses have no currency column, so they are treated as business-currency amounts (consistent with the dashboard).
+
+**Payments and reversals**
+
+- Only active payments reduce the outstanding balance. A payment with a `PaymentReversal` is excluded via `NOT EXISTS`, so a reversed receipt never lowers a forecast.
+- Cash received since the opening balance date is added to current cash exactly once. Those same payments are not added again as future receipts because the invoice's outstanding balance already reflects them.
+
+### Opening balance and timezone
+
+- `openingBalance` is the manually maintained business opening cash and may be negative.
+- `openingBalanceDate` starts the cash-movement window. If it is in the future, the window is empty and current cash equals the opening balance.
+- "Today" is `businessLocalDate(business.timezone)` (default `Asia/Kolkata`), so a UTC timestamp near midnight resolves to the correct business day. All calendar arithmetic uses `YYYY-MM-DD` strings and UTC date math, never local `Date` setters.
+- Invoice and expense dates are returned from PostgreSQL with `to_char`, so the driver's timezone cannot shift a business date.
+
+### Currency
+
+- The forecast is single-currency: the business currency.
+- Outstanding invoices in another currency are **excluded** from all totals and reported separately in `excludedInvoices` (`count`, `byCurrency`, `currencies`). The engine never mixes currencies or invents an exchange rate.
+- Cash sums and expense amounts use the business currency; the repository filters payments by the invoice's currency snapshot.
+
+### Response shape (summary)
+
+`currency`, `timezone`, `horizonDays`, `startDate`, `endDate`, `today`, `calculatedAt`, `openingBalance`, `expectedIncoming`, `expectedOutgoing`, `netCashFlow`, `projectedEndingBalance`, `lowestProjectedBalance`, `lowestProjectedDate`, `shortageDate`, `becomesNegative`, `counts`, `overdue` (amounts and counts), `excludedInvoices`, `incoming[]`, `outgoing[]`, `daily[]`, `weekly[]`, `monthly[]`.
+
+Each daily row has `date`, `openingBalance`, `incoming`, `outgoing`, `net`, `projectedBalance`, `cumulativeIncoming` and `cumulativeOutgoing`. Each incoming item exposes the invoice number, customer, status, due date, expected payment date, scheduled date, outstanding amount and an overdue flag (the invoice is past due or stored as `OVERDUE`); each outgoing item exposes the expense title, category, status, due date, scheduled date, amount and an overdue flag.
+
+### UI
+
+`/dashboard/forecast` (linked as **Cash flow** from the dashboard) is a server-rendered page:
+
+- 30/60/90-day horizon selector.
+- Current cash, expected incoming/outgoing, net cash flow, projected closing balance, lowest balance and its date, shortage indicator and overdue receivables.
+- Warnings for a potential negative balance, overdue customer payments, expenses exceeding receipts, and excluded foreign-currency invoices.
+- Recharts daily chart: incoming/outgoing bars, projected closing-balance line and a zero reference line.
+- Weekly balance table, incoming and outgoing breakdown tables.
+- Empty states for no eligible records and no business; loading skeleton and error boundary.
+- The estimate note shows the last calculation time in the business timezone.
+
+Chart values are converted to major units for display only. Every authoritative amount comes from the server as a decimal string; the frontend performs no financial calculation.
+
+### Implementation files
+
+| Area | Files |
+| --- | --- |
+| Types | `src/types/forecast.ts` |
+| Pure engine | `src/lib/forecast-math.ts` |
+| Validation | `src/lib/validations/forecast.ts` |
+| Repository | `src/server/repositories/forecast-repository.ts` |
+| Service | `src/server/services/forecast-service.ts` |
+| Controller / wiring | `src/server/controllers/forecast-controller.ts`, `forecast-api.ts` |
+| Routes | `src/app/api/v1/businesses/[businessId]/forecast/{route,daily/route,monthly/route}.ts` |
+| Page | `src/app/(dashboard)/dashboard/forecast/{page,loading,error}.tsx` |
+| Components | `src/components/forecast/` |
+| Tests | `tests/forecast-math.test.ts`, `tests/forecast-service.test.ts`, `tests/forecast-routes.test.ts`, `tests/helpers/forecast-fakes.ts` |
+
+### Performance and determinism
+
+- One aggregated query per concern: invoices with a correlated active-payment sum, expenses, and cash sums. No per-invoice or per-expense query (no N+1).
+- Only rows that can fall inside the requested horizon are loaded, and history is limited to the opening-balance window.
+- Results are not cached. Every request recalculates from current records, so changes appear immediately.
+- For a fixed clock, input and records, the output is byte-for-byte deterministic; tests assert this.
+
+### Assumptions and limitations
+
+- Overdue receivables and expenses are assumed to settle on the first forecast day. This is a conservative scheduling rule, not a prediction.
+- Future receipts are assumed to arrive on the expected payment date or, if absent, the due date.
+- The what-if simulator is a separate read-only layer documented below. Recurring-expense automation and multi-currency conversion remain out of scope for this module.
+- The forecast does not model taxes, fees, payment-gateway delays or partial settlement of an individual future invoice beyond the recorded payments.
+- The business's manually maintained opening balance is the source of truth; the forecast is not a live bank balance.
+
+
+## What-if cash flow simulator
+
+Hypothetical 30, 60 or 90-day scenarios layered over the existing forecast. The simulator is **session-only and read-only**: it never creates, updates or deletes an invoice, payment, reversal or expense, and it does not persist scenarios. The database design describes forecasts and what-if scenarios as derived/temporary, so no schema or migration change was needed.
+
+### REST API
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `POST` | `/api/v1/businesses/:businessId/forecast/simulations` | Calculate one hypothetical scenario and return the baseline, simulated forecast and deltas |
+
+There are intentionally no `GET` or `DELETE` simulation endpoints because scenarios are not saved. Every request requires a verified session plus a `BusinessMembership` for `(userId, businessId)`; a non-member receives `403 business_forbidden` and no data.
+
+Example request:
+
+```json
+{
+  "horizon": 30,
+  "adjustments": [
+    { "id": "a1", "type": "delay_payment", "invoiceId": "…", "date": "2026-02-01" },
+    { "id": "a2", "type": "change_amount", "invoiceId": "…", "amount": "800.00" },
+    {
+      "id": "a3",
+      "type": "add_expense",
+      "title": "New equipment",
+      "category": "EQUIPMENT",
+      "amount": "250.00",
+      "date": "2026-01-25"
+    }
+  ]
+}
+```
+
+`horizon` is `30`, `60` or `90` (default 30). `adjustments` may be empty, in which case the simulated forecast equals the baseline. Money is accepted and returned as canonical 2dp decimal strings; dates are `YYYY-MM-DD`; adjustment ids are client-generated labels for the scenario rows.
+
+Response: `currency`, `timezone`, `horizonDays`, `startDate`, `endDate`, `today`, `calculatedAt`, `adjustments[]`, `baseline`, `simulated`, `comparison` and `daily[]`. `baseline` and `simulated` are full forecast responses with daily, weekly, monthly and breakdown data.
+
+### Supported scenarios
+
+| Type | Target | Fields | Effect |
+| --- | --- | --- | --- |
+| `delay_payment` | Invoice | `invoiceId`, `date` | Moves the expected receipt to a later date inside the horizon |
+| `receive_earlier` | Invoice | `invoiceId`, `date` | Moves the expected receipt to an earlier date inside the horizon |
+| `change_amount` | Invoice | `invoiceId`, `amount` | Replaces the outstanding amount expected from the customer |
+| `add_expense` | New hypothetical expense | `title`, `category`, `amount`, `date` | Adds an `UPCOMING` expense that exists only in the simulation |
+| `increase_expense` | Expense | `expenseId`, `amount` | Adds the amount to an existing unpaid expense |
+| `reduce_expense` | Expense | `expenseId`, `amount` | Subtracts the amount while keeping the expense positive |
+| `delay_expense` | Expense | `expenseId`, `date` | Moves an expense payment to a later date inside the horizon |
+
+Multiple adjustments are applied in request order. A record may have **one date change and one amount change** in the same scenario (for example, delay an invoice and reduce what the customer will pay). Two date changes or two amount changes against the same record are rejected as ambiguous.
+
+### Validation
+
+Zod validates the request shape and the pure engine validates the scenario against the authorized snapshot:
+
+- Adjustment ids must be non-empty, at most 64 characters and unique.
+- Invoice and expense ids must be UUIDs.
+- Money must be a positive decimal string with at most two decimals; zero, negative, malformed and more-than-2dp values are rejected.
+- Dates must be real `YYYY-MM-DD` calendar dates inside the selected horizon (`today` through `endDate`).
+- `delay_payment` must be later than the current scheduled date; `receive_earlier` must be earlier; `delay_expense` must be later than the current scheduled date.
+- `change_amount` must differ from the current outstanding amount; `reduce_expense` must be smaller than the current expense amount so the expense stays positive.
+- Referenced invoices must be issued and outstanding; referenced expenses must be unpaid. Fully paid records, `DRAFT`/`VOID`/`PAID` invoices and `PAID`/`CANCELLED` expenses cannot be targeted.
+- References must exist in the business-scoped forecast snapshot for the same horizon. Guessing an id from another business produces a validation error, never the foreign record.
+- Foreign-currency invoices are never adjustable and are never mixed into a simulation.
+- More than 50 adjustments in one request is rejected.
+- Errors use the standard envelope: `invalid_request` (400, with field errors), `unauthenticated` (401), `business_forbidden` (403), `internal_error` (500).
+
+### Calculation
+
+The simulator is a transformation layer over the existing engine, not a second forecasting implementation:
+
+```text
+baseline       = calculateForecast(authorized ForecastInput)
+simulatedInput = clone(input) with hypothetical changes applied
+simulated      = calculateForecast(simulatedInput)
+delta          = simulated - baseline   (BigInt minor units)
+```
+
+Transformation rules:
+
+- `delay_payment` / `receive_earlier`: set the hypothetical `expectedPaymentDate`; the engine's existing rule (`expectedPaymentDate ?? dueDate`, overdue clamped to the first day) then schedules it.
+- `change_amount`: keep `amountPaid` and set the hypothetical `totalAmount = amountPaid + newOutstanding`, so the engine's existing outstanding formula produces exactly the requested amount.
+- `add_expense`: append an `UPCOMING` hypothetical expense with a `simulated-expense-<adjustmentId>` id.
+- `increase_expense` / `reduce_expense`: change only the cloned expense amount.
+- `delay_expense`: change only the cloned `dueDate`.
+
+All original records are cloned before adjustment, so the baseline input and the actual records remain untouched. `baseline` is calculated from the original input object; `simulated` is calculated from the clones with the same `calculateForecast` function, same business-local `today`, same opening balance and same currency. No floating point touches a financial value.
+
+The response comparison includes baseline, simulated and delta for expected incoming, expected outgoing, net cash flow, projected ending balance and lowest projected balance, plus baseline/simulated shortage dates, lowest-balance dates and negative-balance flags. `daily[]` aligns every day with baseline/simulated incoming, outgoing, closing balances and the balance delta.
+
+### Currency and timezone
+
+- A simulation is single-currency: the business currency. Inputs and outputs never mix currencies.
+- Foreign-currency invoices are excluded from the baseline and cannot be targeted by an adjustment; the existing `excludedInvoices` report is preserved.
+- Expenses have no currency column, so they are business-currency amounts (consistent with forecasting and the dashboard).
+- `today` is the business-local date from `businessLocalDate(timezone)`, and all calendar arithmetic uses `YYYY-MM-DD` strings. The same clock read is used for the baseline and the simulation.
+
+### Persistence decision
+
+Scenarios are **not persisted**. The database design and README describe forecasts and what-if scenarios as derived or temporary, and the prompt permits persistence only when the PRD requires it. There is therefore no simulation table, no migration, no saved-scenario API and no `GET`/`DELETE` endpoint. Each POST recalculates in memory from current records, so a stale saved scenario can never be shown as current.
+
+### UI
+
+`/dashboard/forecast/simulator` (linked from the forecast page) is a server-rendered page with a client-side scenario builder:
+
+- Baseline overview reusing the existing forecast summary cards and warnings.
+- 30/60/90-day horizon selector.
+- Scenario builder for all seven adjustment types, with candidate invoices/expenses, amount/date/title/category inputs, add/remove and reset.
+- Loading, validation, empty, error and pending states; server field errors are shown with the request error.
+- Results: baseline-vs-simulated stat cards, shortage comparison, Recharts baseline/simulated balance chart, applied-adjustment table and a scrollable daily balance table.
+- Negative balances are highlighted; every authoritative amount is a server-produced decimal string and chart values are converted to major units for display only.
+- A clear note states that no financial record was written.
+
+### Implementation files
+
+| Area | Files |
+| --- | --- |
+| Types | `src/types/forecast-simulation.ts` |
+| Pure engine | `src/lib/forecast-simulation.ts` |
+| Validation | `src/lib/validations/forecast-simulation.ts` |
+| Service | `src/server/services/forecast-simulation-service.ts` |
+| Controller / wiring | `src/server/controllers/forecast-simulation-controller.ts`, `forecast-simulation-api.ts` |
+| Route | `src/app/api/v1/businesses/[businessId]/forecast/simulations/route.ts` |
+| Page | `src/app/(dashboard)/dashboard/forecast/simulator/{page,loading,error}.tsx` |
+| Components | `src/components/forecast/forecast-simulator.tsx`, `forecast-simulation-results.tsx`, `forecast-simulation-chart.tsx` |
+| Tests | `tests/forecast-simulation-math.test.ts`, `tests/forecast-simulation-service.test.ts`, `tests/forecast-simulation-routes.test.ts` |
+
+### Assumptions and limitations
+
+- Only invoices and expenses that appear in the baseline forecast window can be adjusted. The repository deliberately loads rows up to the horizon end; an item outside the selected horizon is reported as not part of the window. Choose a longer horizon to include it.
+- New dates must stay inside the selected horizon. Modelling a receipt after the horizon is not supported; the existing forecast simply omits it.
+- One date change and one amount change per record are supported. More granular combinations (for example two separate expense increases) are rejected as ambiguous.
+- The simulator does not model taxes, fees, payment-gateway delays, partial settlement of an individual future invoice beyond recorded payments, or new customer invoices. There is no “add hypothetical invoice” scenario because the incoming scenarios are date/amount changes to existing expected payments.
+- Scenarios are not saved, shared or versioned. Refreshing the page clears the builder.
+- The simulation is an estimate using the same rules and limitations as the forecast; it is not a guarantee and does not execute any transaction.
+
+## Smart alerts and action center
+
+Deterministic alerts derived from invoices, payments, expenses, receivables and the existing cash-flow forecast. Alerts are **not** AI predictions, they do not send anything automatically, and evaluation is an explicit action. The action center links the owner to an existing workflow (invoice, reminder, expense, customer or forecast) and never claims that a reminder or payment happened.
+
+### Alert conditions
+
+| Type | Condition | Default severity | Related entity | Dedupe key |
+| --- | --- | --- | --- | --- |
+| `OVERDUE_PAYMENT` | An issued (`SENT`, `PARTIALLY_PAID` or `OVERDUE`) business-currency invoice has an outstanding balance and is past its due date | `WARNING`; `CRITICAL` at 30+ days overdue | Invoice | `OVERDUE_PAYMENT:<invoiceId>` |
+| `PAYMENT_APPROACHING` | An issued business-currency invoice has an outstanding balance and is due today or within the next 3 days | `WARNING` | Invoice | `PAYMENT_APPROACHING:<invoiceId>` |
+| `PARTIAL_PAYMENT_DUE` | A `PARTIALLY_PAID` invoice has an outstanding balance, is not overdue and is due more than 3 days out | `INFO` | Invoice | `PARTIAL_PAYMENT_DUE:<invoiceId>` |
+| `UPCOMING_EXPENSE` | An expense whose stored status is `UPCOMING` has a positive amount and is due today or within the next 3 days | `WARNING` | Expense | `UPCOMING_EXPENSE:<expenseId>` |
+| `POTENTIAL_SHORTAGE` | The authoritative 30-day forecast engine reports `becomesNegative` | `CRITICAL` when the first negative day is within 7 days, otherwise `WARNING` | Forecast | `POTENTIAL_SHORTAGE` |
+| `CUSTOMER_CONCENTRATION` | The largest customer holds at least 50% of business-currency outstanding receivables, with at least two customers holding a balance | `WARNING`; `CRITICAL` at 75% or more | Customer | `CUSTOMER_CONCENTRATION:<customerId>` |
+
+One invoice produces at most one invoice alert. Overdue takes precedence; a partially paid invoice due within 3 days is `PAYMENT_APPROACHING` only; a partially paid invoice further out is `PARTIAL_PAYMENT_DUE`. `DRAFT`, `PAID` and `VOID` invoices never alert. `PAID`, `CANCELLED` and already-overdue expenses never produce `UPCOMING_EXPENSE`.
+
+Outstanding balances use `totalAmount - SUM(active payments)`. A payment with a reversal row is excluded, so a reversed payment restores the full balance. Overpayments are clamped to zero and never alert. Expenses have no currency column and are treated as business-currency amounts.
+
+### Severity rules
+
+| Severity | Overdue invoice | Payment approaching | Partial payment | Upcoming expense | Shortage | Concentration |
+| --- | --- | --- | --- | --- | --- | --- |
+| `CRITICAL` | 30+ days overdue | — | — | — | Negative within 7 days | Top customer ≥ 75% |
+| `WARNING` | 1–29 days overdue | Due in 0–3 days | — | Due in 0–3 days | Negative after 7 days | Top customer 50%–74.99% |
+| `INFO` | — | — | Further-out partial balance | — | — | — |
+
+The thresholds are implementation defaults because no PRD or FR-10 source defines them. They live in `src/lib/alert-rules.ts` as `OVERDUE_CRITICAL_DAYS`, `SHORTAGE_CRITICAL_DAYS`, `CONCENTRATION_THRESHOLD_BPS` and `CONCENTRATION_CRITICAL_BPS` so they can be changed in one place.
+
+### Concentration formula
+
+```text
+exposure(customer) = SUM(outstanding balance of issued business-currency invoices)
+total              = SUM(exposure over all customers with a balance)
+share              = floor(exposure(top) * 10000 / total) basis points
+alert when total > 0, customers >= 2 and share >= 5000
+```
+
+The top customer is the largest exposure; ties are broken by the lower customer id so evaluation is deterministic. Customers with a zero balance are ignored. Only the business currency is counted; multi-currency conversion remains a non-goal. A single-customer book does not alert because there is no comparative concentration and it would otherwise warn on every invoice.
+
+### Lifecycle
+
+| Status | Meaning |
+| --- | --- |
+| `ACTIVE` | The condition currently exists and the alert is a current warning |
+| `RESOLVED` | The condition disappeared; the row is preserved as history and `resolvedAt` is set |
+| `DISMISSED` | The owner hid the alert while the condition still exists; it stays hidden until the condition clears, then becomes `RESOLVED` |
+
+Evaluation runs in one transaction:
+
+1. Load the business context and current cash position, open invoices and unpaid expenses.
+2. Reuse `buildForecastInput` and `calculateForecast` for the shortage condition. The alert engine never duplicates cash-flow arithmetic.
+3. Generate candidates with the pure rules using the business-local date.
+4. Insert missing candidates as `ACTIVE` and unread.
+5. Update severity, title, description, recommended action and related entity only when they changed; read state and the original `createdAt` are preserved.
+6. Resolve every active or dismissed row whose condition no longer exists. Dismissed rows that still match a candidate are counted as `dismissed` and left untouched.
+7. Retry once on Prisma `P2002`, then converge on the existing row instead of creating a duplicate.
+
+Read/unread changes are idempotent and only write when the flag changes. Dismissing is idempotent for `DISMISSED` alerts and returns `409 invalid_transition` for `RESOLVED` history. Resolved alerts never reappear; a recurring condition creates a new alert with a new id, preserving the earlier history.
+
+### Dedupe strategy
+
+`dedupeKey` identifies the underlying condition, not the alert instance. The existing partial unique index:
+
+```sql
+(alerts.business_id, alerts.dedupe_key) WHERE resolved_at IS NULL AND dedupe_key IS NOT NULL
+```
+
+means an `ACTIVE` or `DISMISSED` alert occupies its key while `RESOLVED` rows do not. A resolved condition that returns therefore inserts a fresh alert rather than reopening stale history. A concurrent evaluation that races on the same key is rejected by the index and retried once; the retry sees the winner and updates or leaves it unchanged.
+
+### Evaluation triggers
+
+- `POST /api/v1/businesses/:businessId/alerts/evaluate`
+- The **Evaluate alerts** button on `/dashboard/alerts` and the dashboard summary
+
+There is no background job, scheduler, queue or write on a `GET`. The alert list reflects the last explicit evaluation until the owner runs another one.
+
+### REST API
+
+All endpoints require a verified session and a `BusinessMembership` for `(userId, businessId)`. A non-member receives `403 business_forbidden`; every query is scoped by the verified `businessId`.
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/api/v1/businesses/:businessId/alerts` | Filtered, paginated alert list plus summary counts |
+| `GET` | `/api/v1/businesses/:businessId/alerts/unread-count` | Count of `ACTIVE` unread alerts |
+| `POST` | `/api/v1/businesses/:businessId/alerts/evaluate` | Run deterministic evaluation now |
+| `GET` | `/api/v1/businesses/:businessId/alerts/:alertId` | Alert detail with a validated related-entity reference |
+| `PATCH` | `/api/v1/businesses/:businessId/alerts/:alertId/read` | Mark read (idempotent) |
+| `PATCH` | `/api/v1/businesses/:businessId/alerts/:alertId/unread` | Mark unread (idempotent) |
+| `PATCH` | `/api/v1/businesses/:businessId/alerts/:alertId/dismiss` | Dismiss until the condition clears |
+
+List query parameters:
+
+| Parameter | Values | Default |
+| --- | --- | --- |
+| `type` | One of the six alert types | All types |
+| `severity` | `INFO`, `WARNING`, `CRITICAL` | All severities |
+| `read` | `all`, `read`, `unread` | `all` |
+| `status` | `active`, `resolved`, `dismissed`, `all` | `active` |
+| `page` | Integer ≥ 1 | `1` |
+| `pageSize` | Integer 1–100 | `20` |
+| `sort` | `createdAt`, `severity`, `type` | `createdAt` |
+| `direction` | `asc`, `desc` | `desc` |
+
+The list response includes `items`, `total`, `page`, `pageSize`, `totalPages` and `counts` (`active`, `unread`, `critical`, `warning`, `info`). Detail adds `relatedEntity` (`type`, `id`, `label`, `href`, `summary`) or `null` when the referenced row no longer exists. A related id is only resolved inside the same business, so another tenant's invoice, expense or customer can never be exposed through an alert.
+
+Errors use the shared envelope: `invalid_request` (400 with field errors), `unauthenticated` (401), `business_forbidden` (403), `alert_not_found` (404), `invalid_transition` (409) and `internal_error` (500).
+
+### UI
+
+- `/dashboard` shows severity and unread counts, the five most severe active alerts, an **Open action center** link, an **Evaluate now** button, and an unread badge on the Alerts nav link.
+- `/dashboard/alerts` has the summary tiles, filters for type/severity/read/lifecycle, sorting, pagination, severity indicators, read/unread styling, and empty/error/loading states.
+- `/dashboard/alerts/[alertId]` shows what happened, the recommended action, the related record and contextual actions:
+  - Invoice alerts: **View invoice**, **Send reminder**; overdue alerts also offer **Prepare follow-up**.
+  - Expense alerts: **View expense**.
+  - Concentration alerts: **Review customer exposure**.
+  - Shortage alerts: **Open forecast**.
+- Read/unread and dismiss controls report success only after the server action succeeds. Dismissal asks for confirmation first.
+- If a related record was deleted, the detail page keeps the alert as history and states that the recommended action may no longer apply.
+
+### Implementation files
+
+| Area | Files |
+| --- | --- |
+| Types | `src/types/alert.ts` |
+| Rules and thresholds | `src/lib/alert-rules.ts` |
+| Validation | `src/lib/validations/alert.ts` |
+| Service | `src/server/services/alert-service.ts` |
+| Controller / wiring | `src/server/controllers/alert-controller.ts`, `alert-api.ts` |
+| Repository | `src/server/repositories/alert-repository.ts` |
+| Routes | `src/app/api/v1/businesses/[businessId]/alerts/**` |
+| Server actions | `src/server/actions/alert-actions.ts` |
+| Pages | `src/app/(dashboard)/dashboard/alerts/{page,loading,error}.tsx`, `[alertId]/page.tsx` |
+| Components | `src/components/alerts/*` |
+| Migration | `prisma/migrations/20261121192335_smart_alerts_action_center` |
+| Tests | `tests/alert-rules.test.ts`, `tests/alert-service.test.ts`, `tests/alert-routes.test.ts` |
+
+### Assumptions and limitations
+
+- Severity thresholds, the 3-day approaching windows, the 7-day critical shortage window and the 50%/75% concentration thresholds are implementation defaults, not PRD requirements. They are documented above and centralized in `alert-rules.ts`.
+- Alerts only consider the business currency. Foreign-currency invoices are excluded from invoice alerts and from the concentration denominator; no conversion is attempted.
+- `today` is the business-local date from the business timezone, so a UTC timestamp near midnight can belong to a different business day. Evaluation uses one clock read for the date and the forecast.
+- The shortage alert is exactly the forecast engine's result for a 30-day horizon. Changing forecast eligibility or formulas changes the alert; the alert layer does not maintain a second cash-flow model.
+- Evaluation is explicit. Alerts become stale if financial records change and nobody runs an evaluation. There is no background scheduler, webhook, email, SMS or WhatsApp delivery, and no automatic reminder creation.
+- Dismissal is per alert row, not per user. The MVP has one business per owner, so read state is effectively per business. Multi-user read receipts are not modelled.
+- Resolved rows are retained indefinitely; no retention or archival policy is defined.
+- The UI has no bulk read/dismiss, no snooze, and no alert preference/configuration screen.
+- `npm audit` reports pre-existing high-severity dependency findings unrelated to this feature.
 
 ## Connection pooling
 
@@ -632,7 +1041,7 @@ Folder map (`src/`):
 app/
   (auth)/          login, signup, and auth/callback (route group)
   (dashboard)/     authenticated dashboard + module pages (route group)
-  api/v1/          REST API route handlers (health, customers, invoices, payments, expenses, reminders)
+  api/v1/          REST API route handlers (health, customers, invoices, payments, expenses, reminders, dashboard, forecast)
   layout.tsx
   page.tsx
 proxy.ts           Next.js 16 session refresh and route redirects
@@ -643,6 +1052,7 @@ components/
   payments/        payment and reversal forms
   expenses/        expense list, filters and forms
   reminders/       reminder list, filters, forms, badges and share actions
+  forecast/        forecast summary, chart, breakdowns, table and layout
   ui/              generic UI primitives
   shared/          shared composite components
 modules/           feature modules
