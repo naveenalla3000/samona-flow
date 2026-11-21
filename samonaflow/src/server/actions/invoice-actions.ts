@@ -16,6 +16,7 @@ import { InvoiceServiceError, invoiceService } from "@/server/services/invoice-s
 import type { InvoiceFormState } from "@/types/invoice-form";
 
 const LIST_PATH = "/dashboard/invoices";
+const DASHBOARD_PATH = "/dashboard";
 
 type FieldIssues = { path: PropertyKey[]; message: string }[];
 
@@ -100,6 +101,7 @@ export async function createInvoiceAction(
   }
 
   revalidatePath(LIST_PATH);
+  revalidatePath(DASHBOARD_PATH);
   redirect(`${LIST_PATH}/${invoiceId}`);
 }
 
@@ -132,6 +134,7 @@ export async function updateInvoiceAction(
   }
 
   revalidatePath(LIST_PATH);
+  revalidatePath(DASHBOARD_PATH);
   revalidatePath(`${LIST_PATH}/${parsedId.data}`);
   redirect(`${LIST_PATH}/${parsedId.data}`);
 }
@@ -150,6 +153,7 @@ export async function sendInvoiceAction(formData: FormData): Promise<void> {
   }
 
   revalidatePath(LIST_PATH);
+  revalidatePath(DASHBOARD_PATH);
   revalidatePath(`${LIST_PATH}/${parsedId.data}`);
   redirect(`${LIST_PATH}/${parsedId.data}`);
 }
@@ -168,6 +172,7 @@ export async function voidInvoiceAction(formData: FormData): Promise<void> {
   }
 
   revalidatePath(LIST_PATH);
+  revalidatePath(DASHBOARD_PATH);
   revalidatePath(`${LIST_PATH}/${parsedId.data}`);
   redirect(`${LIST_PATH}/${parsedId.data}`);
 }

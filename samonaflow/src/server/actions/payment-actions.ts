@@ -18,6 +18,7 @@ import type { PaymentFormState } from "@/types/payment-form";
 
 const INVOICE_LIST_PATH = "/dashboard/invoices";
 const PAYMENT_LIST_PATH = "/dashboard/payments";
+const DASHBOARD_PATH = "/dashboard";
 
 function fieldErrors(issues: { path: PropertyKey[]; message: string }[]): Record<string, string> {
   const errors: Record<string, string> = {};
@@ -73,6 +74,7 @@ export async function recordPaymentAction(
   revalidatePath(INVOICE_LIST_PATH);
   revalidatePath(`${INVOICE_LIST_PATH}/${parsedId.data}`);
   revalidatePath(PAYMENT_LIST_PATH);
+  revalidatePath(DASHBOARD_PATH);
   redirect(`${INVOICE_LIST_PATH}/${parsedId.data}`);
 }
 
@@ -114,6 +116,7 @@ export async function reversePaymentAction(
   revalidatePath(INVOICE_LIST_PATH);
   revalidatePath(`${INVOICE_LIST_PATH}/${invoiceId}`);
   revalidatePath(PAYMENT_LIST_PATH);
+  revalidatePath(DASHBOARD_PATH);
   revalidatePath(`${PAYMENT_LIST_PATH}/${parsedId.data}`);
   redirect(`${PAYMENT_LIST_PATH}/${parsedId.data}`);
 }
