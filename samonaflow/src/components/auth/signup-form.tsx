@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { startTransition, useActionState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signupSchema, type SignupInput } from "@/lib/validations/auth";
@@ -29,7 +29,9 @@ export function SignupForm({ next }: { next: string }) {
     formData.set("password", values.password);
     formData.set("confirmPassword", values.confirmPassword);
     formData.set("next", next);
-    formAction(formData);
+    startTransition(() => {
+      formAction(formData);
+    });
   });
 
   const emailError = errors.email?.message ?? state.fieldErrors?.email;
