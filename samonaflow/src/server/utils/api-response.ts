@@ -11,6 +11,7 @@ export type ApiErrorCode =
   | "invoice_not_found"
   | "payment_not_found"
   | "reminder_not_found"
+  | "alert_not_found"
   | "invalid_reminder_context"
   | "payment_exceeds_outstanding"
   | "payment_already_reversed"

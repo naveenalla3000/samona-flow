@@ -120,6 +120,17 @@ enum AlertSeverity {
   @@map("alert_severity")
 }
 
+// ACTIVE alerts are current warnings. RESOLVED alerts had their condition
+// disappear. DISMISSED alerts were hidden by the user and stay hidden until the
+// underlying condition clears (then they become RESOLVED).
+enum AlertStatus {
+  ACTIVE
+  RESOLVED
+  DISMISSED
+
+  @@map("alert_status")
+}
+
 // ---------------------------------------------------------------------------
 // Identity and tenancy
 // ---------------------------------------------------------------------------
@@ -419,29 +430,39 @@ model Alert {
   id         String @id @default(uuid()) @db.Uuid
   businessId String @map("business_id") @db.Uuid
 
-  alertType   AlertType     @map("alert_type")
-  severity    AlertSeverity
-  title       String
-  description String        @db.Text
+  alertType         AlertType     @map("alert_type")
+  severity          AlertSeverity
+  title             String
+  description       String        @db.Text
+  recommendedAction String        @map("recommended_action")
 
   // Polymorphic reference to any entity. Intentionally has NO foreign key.
-  entityType String? @map("entity_type")
-  entityId   String? @map("entity_id") @db.Uuid
+  // The service validates that the referenced row belongs to businessId before
+  // exposing its details.
+  relatedEntityType String? @map("related_entity_type")
+  relatedEntityId   String? @map("related_entity_id") @db.Uuid
 
-  // Stable key such as "OVERDUE:<invoiceId>", used to prevent duplicate active
-  // alerts.
-  // TODO (migration): add a partial unique index on (business_id, dedupe_key)
-  // WHERE resolved_at IS NULL. Prisma cannot express partial indexes.
+  // Stable key such as "OVERDUE_PAYMENT:<invoiceId>", used to prevent duplicate
+  // active alerts. The applied partial unique index is:
+  //   (business_id, dedupe_key) WHERE resolved_at IS NULL AND dedupe_key IS NOT NULL
   dedupeKey String? @map("dedupe_key")
 
-  isRead     Boolean   @default(false) @map("is_read")
-  readAt     DateTime? @map("read_at") @db.Timestamptz(6)
-  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz(6)
+  status     AlertStatus @default(ACTIVE)
+  isRead     Boolean     @default(false) @map("is_read")
+  readAt     DateTime?   @map("read_at") @db.Timestamptz(6)
+  resolvedAt DateTime?   @map("resolved_at") @db.Timestamptz(6)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
 
+  @@index([businessId, alertType])
+  @@index([businessId, severity])
+  @@index([businessId, status])
+  @@index([businessId, isRead])
+  @@index([businessId, createdAt])
+  @@index([businessId, relatedEntityId])
   @@index([businessId, resolvedAt])
   @@index([businessId, dedupeKey])
   @@map("alerts")

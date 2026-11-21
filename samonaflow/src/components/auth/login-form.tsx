@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { startTransition, useActionState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
@@ -28,7 +28,9 @@ export function LoginForm({ next }: { next: string }) {
     formData.set("email", values.email);
     formData.set("password", values.password);
     formData.set("next", next);
-    formAction(formData);
+    startTransition(() => {
+      formAction(formData);
+    });
   });
 
   const emailError = errors.email?.message ?? state.fieldErrors?.email;

@@ -1,9 +1,15 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { formatMoney } from "@/lib/invoice-math";
+import { connection } from "next/server";
+import { EvaluateAlertsButton } from "@/components/alerts/alert-actions";
+import { AlertSeverityBadge } from "@/components/alerts/alert-layout";
+import { ALERT_TYPE_LABELS } from "@/lib/alert-rules";
+import { formatMoney, parseMoney } from "@/lib/invoice-math";
+import { listAlertsQuerySchema } from "@/lib/validations/alert";
 import { dashboardPresetSchema } from "@/lib/validations/dashboard";
 import { requireUser } from "@/server/auth/require-auth";
 import { resolveCurrentBusiness } from "@/server/auth/require-business";
+import { alertService } from "@/server/services/alert-service";
 import { dashboardService } from "@/server/services/dashboard-service";
 import { TrendsChart } from "./trends-chart";
 
@@ -56,6 +62,10 @@ const EMPTY_CLASS = "py-6 text-center text-sm text-gray-500";
 const NAV_LINK_CLASS = "rounded-md border border-gray-200 bg-white px-3 py-2 text-center hover:bg-gray-50";
 
 export default async function DashboardPage({ searchParams }: { searchParams: SearchParams }) {
+  // The dashboard resolves "today" in the business timezone below, so it must
+  // render at request time rather than being prerendered with a frozen clock.
+  await connection();
+
   const user = await requireUser();
   const business = await resolveCurrentBusiness(user);
   if (!business.ok) {
@@ -70,7 +80,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
 
   // The summary resolves the preset to a concrete range; trends need that explicit from/to.
   const summary = await dashboardService.getSummary(user, business.businessId, { preset });
-  const [trends, receivables, activity, reminders] = await Promise.all([
+  const [trends, receivables, activity, reminders, alerts] = await Promise.all([
     dashboardService.getTrends(user, business.businessId, {
       from: summary.range.from,
       to: summary.range.to,
@@ -79,6 +89,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
     dashboardService.getReceivables(user, business.businessId, { limit: 10 }),
     dashboardService.getRecentActivity(user, business.businessId, { limit: 10 }),
     dashboardService.getReminders(user, business.businessId),
+    alertService.list(
+      user,
+      business.businessId,
+      listAlertsQuerySchema.parse({
+        pageSize: 5,
+        sort: "severity",
+        direction: "desc",
+      }),
+    ),
   ]);
 
   const currency = receivables.currency;
@@ -104,7 +123,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
       date: row.issueDate,
       reference: row.invoiceNumber,
       customer: row.customerName,
-      amount: withCode(BigInt(row.totalAmount), row.currency),
+      amount: withCode(parseMoney(row.totalAmount), row.currency),
       href: `/dashboard/invoices/${row.id}`,
     })),
     ...activity.payments.map((row) => ({
@@ -113,7 +132,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
       date: row.paymentDate,
       reference: row.invoiceNumber,
       customer: row.customerName,
-      amount: withCode(BigInt(row.amount), row.currency),
+      amount: withCode(parseMoney(row.amount), row.currency),
       href: `/dashboard/payments/${row.id}`,
     })),
   ]
@@ -148,6 +167,69 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
         ))}
       </div>
 
+      <Section title="Smart alerts">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="rounded-full bg-red-50 px-2 py-1 font-medium text-red-700">
+            {alerts.counts.critical} critical
+          </span>
+          <span className="rounded-full bg-amber-50 px-2 py-1 font-medium text-amber-700">
+            {alerts.counts.warning} warning
+          </span>
+          <span className="rounded-full bg-sky-50 px-2 py-1 font-medium text-sky-700">
+            {alerts.counts.info} info
+          </span>
+          <span className="rounded-full bg-gray-100 px-2 py-1 font-medium text-gray-700">
+            {alerts.counts.unread} unread
+          </span>
+        </div>
+        {alerts.items.length === 0 ? (
+          <p className={EMPTY_CLASS}>
+            No active alerts. Run an evaluation to check the latest conditions.
+          </p>
+        ) : (
+          <ul className="mt-3 divide-y divide-gray-100 text-sm">
+            {alerts.items.map((alert) => (
+              <li key={alert.id} className="flex items-center justify-between gap-3 py-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <AlertSeverityBadge severity={alert.severity} />
+                    {!alert.isRead ? (
+                      <span
+                        className="inline-block h-2 w-2 rounded-full bg-sky-500"
+                        aria-label="Unread"
+                      />
+                    ) : null}
+                  </div>
+                  <Link
+                    href={`/dashboard/alerts/${alert.id}`}
+                    className={`mt-1 block truncate hover:underline ${
+                      alert.isRead ? "text-gray-700" : "font-medium text-gray-900"
+                    }`}
+                  >
+                    {alert.title}
+                  </Link>
+                  <p className="truncate text-xs text-gray-500">
+                    {ALERT_TYPE_LABELS[alert.type]}
+                  </p>
+                </div>
+                <Link
+                  href={`/dashboard/alerts/${alert.id}`}
+                  className="shrink-0 text-xs text-gray-600 underline"
+                >
+                  View
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Link href="/dashboard/alerts" className="text-sm font-medium text-gray-900 underline">
+            Open action center
+          </Link>
+          <EvaluateAlertsButton label="Evaluate now" />
+        </div>
+      </Section>
+
       <Section title="Trends">
         <TrendsChart
           currency={trends.currency}
@@ -180,7 +262,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
                     <tr key={row.id} className="border-b last:border-0">
                       <td className="py-2 pr-3">{row.customerName}</td>
                       <td className="py-2 pr-3">{row.invoiceNumber}</td>
-                      <td className="py-2 pr-3">{withCode(BigInt(row.outstanding), receivables.currency)}</td>
+                      <td className="py-2 pr-3">{withCode(parseMoney(row.outstanding), receivables.currency)}</td>
                       <td className="py-2 pr-3">{row.dueDate}</td>
                       <td className="py-2 pr-3">{daysOverdue(row.dueDate, today)}</td>
                       <td className="py-2">{row.status}</td>
@@ -252,12 +334,25 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
         </Section>
       </div>
 
-      <nav className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-5" aria-label="Sections">
+      <nav
+        className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8"
+        aria-label="Sections"
+      >
         <Link href="/dashboard/customers" className={NAV_LINK_CLASS}>Customers</Link>
         <Link href="/dashboard/invoices" className={NAV_LINK_CLASS}>Invoices</Link>
         <Link href="/dashboard/payments" className={NAV_LINK_CLASS}>Payments</Link>
         <Link href="/dashboard/expenses" className={NAV_LINK_CLASS}>Expenses</Link>
         <Link href="/dashboard/reminders" className={NAV_LINK_CLASS}>Reminders</Link>
+        <Link href="/dashboard/forecast" className={NAV_LINK_CLASS}>Cash flow</Link>
+        <Link href="/dashboard/forecast/simulator" className={NAV_LINK_CLASS}>What-if</Link>
+        <Link href="/dashboard/alerts" className={NAV_LINK_CLASS}>
+          Alerts
+          {alerts.counts.unread > 0 ? (
+            <span className="ml-2 inline-block rounded-full bg-red-600 px-2 py-0.5 text-xs font-medium text-white">
+              {alerts.counts.unread}
+            </span>
+          ) : null}
+        </Link>
       </nav>
     </div>
   );
