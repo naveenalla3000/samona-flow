@@ -1,7 +1,20 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// Source of truth: PRD (README.md) Section 8 (Database Design), Section 10
+// (money/dates/transactions) and Section 5 FR-04 to FR-10.
+//
+// Conventions:
+// - Money is Decimal (never Float). Quantities use Decimal(10,2).
+// - Business dates are Date (@db.Date) in the business's local timezone.
+// - Event times are DateTime @db.Timestamptz(6).
+// - Tenancy: every business-owned row carries businessId. Child rows that must
+//   belong to the same business as their parent reference the parent through a
+//   composite foreign key [parentId, businessId] -> Parent [id, businessId],
+//   which makes cross-tenant references impossible at the database level.
+// - Deletion: financial rows are never cascaded from a business. Restrict is
+//   used everywhere except InvoiceItem (cascades from Invoice) and
+//   BusinessMembership (cascades from user and business).
 
 generator client {
   provider = "prisma-client"
@@ -10,4 +23,426 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum BusinessRole {
+  OWNER
+  STAFF // Reserved. PRD defers staff accounts, so only OWNER is used in MVP.
+
+  @@map("business_role")
+}
+
+// DRAFT, SENT, PARTIALLY_PAID, PAID and VOID are set by the service.
+// OVERDUE is derived by the service from dueDate using the business-local date.
+// It is stored only as a cached value that the service refreshes; it is never
+// the source of truth.
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  VOID
+
+  @@map("invoice_status")
+}
+
+enum PaymentMethod {
+  UPI
+  BANK_TRANSFER
+  CASH
+  OTHER
+
+  @@map("payment_method")
+}
+
+enum ExpenseCategory {
+  RENT
+  INTERNET
+  SOFTWARE_SUBSCRIPTIONS
+  SALARIES
+  EQUIPMENT
+  MARKETING
+  TRAVEL
+  UTILITIES
+  OTHER
+
+  @@map("expense_category")
+}
+
+enum ExpenseStatus {
+  UPCOMING
+  OVERDUE
+  PAID
+  CANCELLED
+
+  @@map("expense_status")
+}
+
+enum ReminderType {
+  UPCOMING_PAYMENT
+  DUE_TODAY
+  OVERDUE_PAYMENT
+  FINAL_FOLLOW_UP
+
+  @@map("reminder_type")
+}
+
+// Opening WhatsApp is not delivery. Only MARKED_SENT is set by the user.
+enum ReminderStatus {
+  DRAFTED
+  WHATSAPP_OPENED
+  MARKED_SENT
+
+  @@map("reminder_status")
+}
+
+enum AlertType {
+  OVERDUE_PAYMENT
+  PAYMENT_APPROACHING
+  POTENTIAL_SHORTAGE
+  UPCOMING_EXPENSE
+  PARTIAL_PAYMENT_DUE
+  CUSTOMER_CONCENTRATION
+
+  @@map("alert_type")
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+
+  @@map("alert_severity")
+}
+
+// ---------------------------------------------------------------------------
+// Identity and tenancy
+// ---------------------------------------------------------------------------
+
+// Mirrors auth.users managed by Supabase Auth. The id IS the Supabase Auth user
+// UUID and is never generated here. No password or credential fields are stored.
+model UserProfile {
+  id       String  @id @db.Uuid
+  email    String  @unique
+  fullName String? @map("full_name")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  ownedBusinesses  Business[]
+  memberships      BusinessMembership[]
+  paymentReversals PaymentReversal[]
+
+  @@map("user_profiles")
+}
+
+// Business settings (currency, timezone, opening balance) are fields on this
+// model, as PRD table 8.1 places them. There is no separate settings model.
+model Business {
+  id      String @id @default(uuid()) @db.Uuid
+  ownerId String @map("owner_id") @db.Uuid
+
+  name         String  @db.VarChar(200)
+  ownerName    String  @map("owner_name")
+  email        String
+  phone        String?
+  businessType String  @map("business_type")
+
+  currency String @default("INR") @db.Char(3) // ISO 4217
+  timezone String @default("Asia/Kolkata") // IANA timezone name
+
+  openingBalance     Decimal  @default(0) @map("opening_balance") @db.Decimal(12, 2)
+  openingBalanceDate DateTime @map("opening_balance_date") @db.Date
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  owner            UserProfile          @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  memberships      BusinessMembership[]
+  customers        Customer[]
+  invoices         Invoice[]
+  invoiceItems     InvoiceItem[]
+  payments         Payment[]
+  expenses         Expense[]
+  reminders        Reminder[]
+  alerts           Alert[]
+  paymentReversals PaymentReversal[]
+
+  @@index([ownerId])
+  @@map("businesses")
+}
+
+// One membership row per user per business. The owner's row is created in the
+// same transaction as the business, in service code.
+model BusinessMembership {
+  id         String       @id @default(uuid()) @db.Uuid
+  userId     String       @map("user_id") @db.Uuid
+  businessId String       @map("business_id") @db.Uuid
+  role       BusinessRole
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user     UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, businessId])
+  @@index([businessId])
+  @@map("business_memberships")
+}
+
+// ---------------------------------------------------------------------------
+// Customers
+// ---------------------------------------------------------------------------
+
+// Archiving keeps the row (archivedAt). Deletion is blocked by Restrict on
+// financial children (invoices, reminders).
+model Customer {
+  id         String @id @default(uuid()) @db.Uuid
+  businessId String @map("business_id") @db.Uuid
+
+  name        String  @db.VarChar(200)
+  email       String?
+  phone       String?
+  companyName String? @map("company_name")
+  address     String? @db.Text
+  notes       String? @db.Text
+
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business  Business   @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  invoices  Invoice[]
+  reminders Reminder[]
+
+  // Target of composite foreign keys that enforce same-business references.
+  @@unique([id, businessId])
+  @@index([businessId, archivedAt])
+  @@index([businessId, name])
+  @@map("customers")
+}
+
+// ---------------------------------------------------------------------------
+// Invoicing
+// ---------------------------------------------------------------------------
+
+model Invoice {
+  id         String @id @default(uuid()) @db.Uuid
+  businessId String @map("business_id") @db.Uuid
+  customerId String @map("customer_id") @db.Uuid
+
+  invoiceNumber       String    @map("invoice_number")
+  issueDate           DateTime  @map("issue_date") @db.Date
+  dueDate             DateTime  @map("due_date") @db.Date
+  expectedPaymentDate DateTime? @map("expected_payment_date") @db.Date
+
+  // OVERDUE is a cached value refreshed by the service. See InvoiceStatus.
+  status InvoiceStatus @default(DRAFT)
+
+  subtotal    Decimal @db.Decimal(12, 2)
+  discount    Decimal @default(0) @db.Decimal(12, 2)
+  tax         Decimal @default(0) @db.Decimal(12, 2)
+  totalAmount Decimal @map("total_amount") @db.Decimal(12, 2)
+
+  /// ISO 4217 snapshot taken at creation; must not change after the invoice leaves DRAFT (service and DB trigger enforcement, see migration TODO).
+  currency String @db.Char(3)
+
+  notes String? @db.Text
+
+  // Public payment link: store only the SHA-256 hex digest of a random token,
+  // never the raw token.
+  publicTokenHash      String?   @unique @map("public_token_hash")
+  publicTokenRevokedAt DateTime? @map("public_token_revoked_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business  Business      @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  // Composite FK: the customer must belong to the same business as the invoice.
+  customer  Customer      @relation(fields: [customerId, businessId], references: [id, businessId], onDelete: Restrict)
+  items     InvoiceItem[]
+  payments  Payment[]
+  reminders Reminder[]
+
+  @@unique([businessId, invoiceNumber])
+  // Target of composite foreign keys that enforce same-business references.
+  @@unique([id, businessId])
+  // Target of the Reminder composite FK that pins a reminder to this invoice's customer.
+  @@unique([id, customerId, businessId])
+  @@index([businessId, status])
+  @@index([businessId, dueDate])
+  @@index([customerId])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id         String @id @default(uuid()) @db.Uuid
+  // Carried so that the composite FK below enforces tenancy on items.
+  businessId String @map("business_id") @db.Uuid
+  invoiceId  String @map("invoice_id") @db.Uuid
+
+  description String
+  quantity    Decimal @db.Decimal(10, 2)
+  unitPrice   Decimal @map("unit_price") @db.Decimal(12, 2)
+  lineTotal   Decimal @map("line_total") @db.Decimal(12, 2)
+  position    Int
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  // Composite FK: items are removed with their invoice and must match its business.
+  invoice  Invoice  @relation(fields: [invoiceId, businessId], references: [id, businessId], onDelete: Cascade)
+
+  @@unique([invoiceId, position])
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+// Payments are append-only. There is no updatedAt, so history is not silently
+// overwritten. Each payment applies to exactly one invoice (PRD FR-05), so no
+// allocation table is needed.
+model Payment {
+  id         String @id @default(uuid()) @db.Uuid
+  businessId String @map("business_id") @db.Uuid
+  invoiceId  String @map("invoice_id") @db.Uuid
+
+  amount               Decimal       @db.Decimal(12, 2)
+  paymentDate          DateTime      @map("payment_date") @db.Date
+  method               PaymentMethod
+  transactionReference String?       @map("transaction_reference")
+  notes                String?       @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  business         Business          @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  // Composite FK: the payment must belong to the same business as the invoice.
+  invoice          Invoice           @relation(fields: [invoiceId, businessId], references: [id, businessId], onDelete: Restrict)
+  paymentReversals PaymentReversal[]
+
+  // Target of the PaymentReversal composite FK.
+  @@unique([id, businessId])
+  @@index([invoiceId])
+  @@index([businessId, paymentDate])
+  @@map("payments")
+}
+
+// Reversal is an append-only event; the payment is never deleted or edited.
+// Outstanding = total - (sum of payments - sum of reversed payment amounts), derived by the service.
+// No updatedAt and no delete path. A payment can be reversed at most once.
+model PaymentReversal {
+  id           String @id @default(uuid()) @db.Uuid
+  businessId   String @map("business_id") @db.Uuid
+  paymentId    String @map("payment_id") @db.Uuid
+  reversedById String @map("reversed_by_id") @db.Uuid
+
+  reason     String   @db.Text
+  reversedAt DateTime @default(now()) @map("reversed_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  business   Business    @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  // Composite FK: the reversal must belong to the same business as the payment.
+  payment    Payment     @relation(fields: [paymentId, businessId], references: [id, businessId], onDelete: Restrict)
+  reversedBy UserProfile @relation(fields: [reversedById], references: [id], onDelete: Restrict)
+
+  @@unique([paymentId])
+  @@map("payment_reversals")
+}
+
+// ---------------------------------------------------------------------------
+// Expenses
+// ---------------------------------------------------------------------------
+
+model Expense {
+  id         String @id @default(uuid()) @db.Uuid
+  businessId String @map("business_id") @db.Uuid
+
+  title       String
+  category    ExpenseCategory
+  amount      Decimal         @db.Decimal(12, 2)
+  dueDate     DateTime        @map("due_date") @db.Date
+  paymentDate DateTime?       @map("payment_date") @db.Date
+  status      ExpenseStatus   @default(UPCOMING)
+  notes       String?         @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+
+  @@index([businessId, status, dueDate])
+  @@map("expenses")
+}
+
+// ---------------------------------------------------------------------------
+// Reminders
+// ---------------------------------------------------------------------------
+
+// Opening WhatsApp is not delivery. Only MARKED_SENT is set by the user.
+model Reminder {
+  id         String @id @default(uuid()) @db.Uuid
+  businessId String @map("business_id") @db.Uuid
+  customerId String @map("customer_id") @db.Uuid
+  invoiceId  String @map("invoice_id") @db.Uuid
+
+  reminderType ReminderType   @map("reminder_type")
+  status       ReminderStatus @default(DRAFTED)
+  message      String         @db.Text
+  followUpDate DateTime?      @map("follow_up_date") @db.Date
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  // Composite FK: customer must belong to the same business.
+  customer Customer @relation(fields: [customerId, businessId], references: [id, businessId], onDelete: Restrict)
+  // Composite FK: the reminder's customer must be the invoice's customer (and the same business).
+  invoice  Invoice  @relation(fields: [invoiceId, customerId, businessId], references: [id, customerId, businessId], onDelete: Restrict)
+
+  @@index([invoiceId])
+  @@index([customerId])
+  @@index([businessId, followUpDate])
+  @@map("reminders")
+}
+
+// ---------------------------------------------------------------------------
+// Alerts
+// ---------------------------------------------------------------------------
+
+model Alert {
+  id         String @id @default(uuid()) @db.Uuid
+  businessId String @map("business_id") @db.Uuid
+
+  alertType   AlertType     @map("alert_type")
+  severity    AlertSeverity
+  title       String
+  description String        @db.Text
+
+  // Polymorphic reference to any entity. Intentionally has NO foreign key.
+  entityType String? @map("entity_type")
+  entityId   String? @map("entity_id") @db.Uuid
+
+  // Stable key such as "OVERDUE:<invoiceId>", used to prevent duplicate active
+  // alerts.
+  // TODO (migration): add a partial unique index on (business_id, dedupe_key)
+  // WHERE resolved_at IS NULL. Prisma cannot express partial indexes.
+  dedupeKey String? @map("dedupe_key")
+
+  isRead     Boolean   @default(false) @map("is_read")
+  readAt     DateTime? @map("read_at") @db.Timestamptz(6)
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+
+  @@index([businessId, resolvedAt])
+  @@index([businessId, dedupeKey])
+  @@map("alerts")
 }
