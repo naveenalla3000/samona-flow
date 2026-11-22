@@ -4,7 +4,12 @@ import { redirect } from "next/navigation";
 import type { ZodError } from "zod";
 import { getAppUrl } from "@/lib/config/app-url";
 import { sanitizeNextPath } from "@/lib/auth/safe-redirect";
-import { loginSchema, signupSchema } from "@/lib/validations/auth";
+import {
+  forgotPasswordSchema,
+  loginSchema,
+  resetPasswordSchema,
+  signupSchema,
+} from "@/lib/validations/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { mapAuthError } from "./auth-errors";
 import { toVerifiedIdentity } from "./identity";
@@ -119,6 +124,78 @@ export async function signUpAction(
   }
 
   redirect(next);
+}
+
+export async function forgotPasswordAction(
+  _previousState: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const parsed = forgotPasswordSchema.safeParse({
+    email: getString(formData, "email"),
+  });
+
+  if (!parsed.success) {
+    return { ...invalidForm(), fieldErrors: toFieldErrors(parsed.error) };
+  }
+
+  const callbackUrl = new URL("/auth/callback", getAppUrl());
+  callbackUrl.searchParams.set("next", "/reset-password");
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+    redirectTo: callbackUrl.toString(),
+  });
+
+  if (error) {
+    return {
+      status: "error",
+      message: mapAuthError(
+        error.message,
+        "Unable to send a password reset link. Please try again.",
+      ),
+    };
+  }
+
+  return {
+    status: "success",
+    message:
+      "If an account exists for that email, a password reset link has been sent.",
+  };
+}
+
+export async function resetPasswordAction(
+  _previousState: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const parsed = resetPasswordSchema.safeParse({
+    password: getString(formData, "password"),
+    confirmPassword: getString(formData, "confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    return { ...invalidForm(), fieldErrors: toFieldErrors(parsed.error) };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/forgot-password?error=invalid-or-expired");
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
+
+  if (error) {
+    return {
+      status: "error",
+      message: mapAuthError(error.message, "Unable to reset your password. Please try again."),
+    };
+  }
+
+  await supabase.auth.signOut();
+  redirect("/login?reset=success");
 }
 
 export async function signOutAction(): Promise<void> {

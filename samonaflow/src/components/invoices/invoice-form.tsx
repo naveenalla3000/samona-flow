@@ -70,7 +70,6 @@ export function InvoiceForm({
     formData.set("customerId", submitted.customerId ?? "");
     formData.set("issueDate", submitted.issueDate ?? "");
     formData.set("dueDate", submitted.dueDate ?? "");
-    formData.set("expectedPaymentDate", String(submitted.expectedPaymentDate ?? ""));
     formData.set("currency", String(submitted.currency ?? ""));
     formData.set("notes", String(submitted.notes ?? ""));
     formData.set("discount", submitted.discount ?? "0.00");
@@ -156,27 +155,6 @@ export function InvoiceForm({
             <FieldError
               id="dueDate-error"
               message={errors.dueDate?.message ?? state.fieldErrors?.dueDate}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="expectedPaymentDate" className={LABEL_CLASS}>
-              Expected payment date
-            </label>
-            <input
-              id="expectedPaymentDate"
-              type="date"
-              aria-invalid={Boolean(
-                errors.expectedPaymentDate ?? state.fieldErrors?.expectedPaymentDate,
-              )}
-              className={`${FIELD_CLASS} mt-1`}
-              {...register("expectedPaymentDate")}
-            />
-            <FieldError
-              id="expectedPaymentDate-error"
-              message={
-                errors.expectedPaymentDate?.message ?? state.fieldErrors?.expectedPaymentDate
-              }
             />
           </div>
 

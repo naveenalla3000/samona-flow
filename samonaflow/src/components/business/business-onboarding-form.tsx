@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { createBusinessAction } from "@/server/actions/business-actions";
-import { initialBusinessFormState } from "@/types/business";
+import { initialBusinessFormState } from "@/types/business-form";
 
 type Props = { defaultEmail: string };
 
