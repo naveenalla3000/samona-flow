@@ -38,7 +38,7 @@ export default async function EditExpensePage({
   const updateAction = updateExpenseAction.bind(null, expense.id);
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 py-12">
+    <main className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-10">
       <ExpensesHeader title="Edit expense" subtitle={expense.title} />
       <ExpenseForm
         submitLabel="Save changes"

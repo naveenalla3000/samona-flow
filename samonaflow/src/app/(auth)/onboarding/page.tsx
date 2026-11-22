@@ -16,8 +16,8 @@ export default async function OnboardingPage() {
   }
 
   return (
-    <main className="min-h-screen w-full bg-white px-5 py-8 sm:px-6 lg:px-8 lg:py-12">
-      <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[1100px] items-center">
+    <main className="min-h-screen w-full bg-white px-4 py-6 sm:px-6 lg:px-8 lg:py-12">
+      <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-[1100px] items-center sm:min-h-[calc(100vh-4rem)]">
         <div className="grid w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_20px_60px_-24px_rgba(15,23,42,0.18)] lg:grid-cols-[minmax(0,0.4fr)_minmax(0,0.6fr)]">
           <section className="relative flex flex-col justify-between border-b border-slate-200/80 bg-white px-6 py-8 sm:px-8 lg:border-b-0 lg:border-r lg:px-10 lg:py-12">
             <div>

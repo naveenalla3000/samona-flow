@@ -47,7 +47,7 @@ export default async function ExpenseDetailPage({
   const cancellable = canCancelExpense(expense.status);
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-6 py-12">
+    <main className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
       <ExpensesHeader
         title={expense.title}
         subtitle={`${EXPENSE_CATEGORY_LABELS[expense.category]} · recorded ${expense.createdAt}`}

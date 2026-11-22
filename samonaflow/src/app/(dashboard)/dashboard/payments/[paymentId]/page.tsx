@@ -41,7 +41,7 @@ export default async function PaymentDetailPage({
   const canReverse = payment.status === "RECORDED" && canReversePayment(payment.invoice.status);
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-6 py-12">
+    <main className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
       <PaymentsHeader
         title={`Payment for ${payment.invoiceNumber}`}
         subtitle={`Recorded ${payment.createdAt}`}

@@ -27,7 +27,7 @@ export default async function NewExpensePage() {
   if (!business.ok) return <NoBusinessState />;
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 py-12">
+    <main className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-10">
       <ExpensesHeader
         title="Add expense"
         subtitle="Record a one-time expense. Paid expenses require a payment date."

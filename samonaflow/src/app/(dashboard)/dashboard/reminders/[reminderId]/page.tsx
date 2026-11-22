@@ -44,7 +44,7 @@ export default async function ReminderDetailPage({
   const editable = canEditMessage(reminder.status) || canReschedule(reminder.status);
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-6 py-12">
+    <main className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
       <RemindersHeader
         title={`Reminder for ${reminder.customerName}`}
         subtitle={`${reminder.invoiceNumber} · ${REMINDER_TYPE_LABELS[reminder.reminderType]} · created ${reminder.createdAt}`}

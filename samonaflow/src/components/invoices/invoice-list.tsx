@@ -64,7 +64,7 @@ export function InvoiceList({ invoices }: { invoices: InvoiceListItem[] }) {
                 {invoice.currency} {invoice.outstandingAmount}
               </td>
               <td className="px-4 py-3">
-                <div className="flex justify-end gap-3">
+                <div className="flex flex-wrap justify-end gap-2 sm:gap-3">
                   <Link href={`/dashboard/invoices/${invoice.id}`} className="text-sm hover:underline">
                     View
                   </Link>

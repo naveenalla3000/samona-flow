@@ -50,13 +50,13 @@ export default async function InvoicePreviewPage({
   };
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-6 py-12">
+    <main className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
       <div data-print-hide>
         <InvoicesHeader
           title="Invoice preview"
           subtitle="Use your browser's print dialog to print or save as PDF."
           action={
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <PrintButton />
               <Link
                 href={`/dashboard/invoices/${invoice.id}`}

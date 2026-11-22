@@ -49,7 +49,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Se
   }
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-12">
+    <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
       <CustomersHeader
         title="Customers"
         subtitle="Manage the people and businesses you invoice."

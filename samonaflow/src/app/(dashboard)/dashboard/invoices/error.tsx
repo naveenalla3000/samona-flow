@@ -8,7 +8,7 @@ export default function InvoicesError({ error, retry }: { error: unknown; retry:
   }, [error]);
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-12">
+    <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
       <h1 className="text-2xl font-semibold">Invoices</h1>
       <div
         role="alert"

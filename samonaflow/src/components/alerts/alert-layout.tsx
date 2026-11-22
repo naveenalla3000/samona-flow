@@ -12,7 +12,7 @@ export function AlertsHeader({
   action?: ReactNode;
 }) {
   return (
-    <header className="flex flex-wrap items-start justify-between gap-4">
+    <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
         <h1 className="text-2xl font-semibold">{title}</h1>
         <p className="mt-1 text-sm text-neutral-500">{subtitle}</p>
@@ -24,7 +24,7 @@ export function AlertsHeader({
 
 export function NoBusinessState() {
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-12">
+    <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
       <h1 className="text-2xl font-semibold">Smart alerts</h1>
       <div className="mt-6 rounded-lg border border-dashed border-neutral-300 p-10 text-center">
         <h2 className="text-lg font-medium">No business set up yet</h2>
@@ -39,7 +39,7 @@ export function NoBusinessState() {
 
 export function AlertLoadError() {
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-12">
+    <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
       <h1 className="text-2xl font-semibold">Smart alerts</h1>
       <div
         role="alert"

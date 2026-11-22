@@ -55,7 +55,7 @@ export default async function RemindersPage({ searchParams }: { searchParams: Se
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-12">
+    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       <RemindersHeader
         title="Reminders"
         subtitle="Payment follow-ups you generate and send yourself. No message is delivered automatically."

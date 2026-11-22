@@ -178,7 +178,7 @@ export function ForecastEstimateNote({
 
 export function ForecastNoBusinessState() {
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-12">
+    <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
       <h1 className="text-2xl font-semibold">Cash flow forecast</h1>
       <div className="mt-6 rounded-lg border border-dashed border-neutral-300 p-10 text-center">
         <h2 className="text-lg font-medium">No business set up yet</h2>
@@ -193,7 +193,7 @@ export function ForecastNoBusinessState() {
 
 export function ForecastLoadError() {
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-12">
+    <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
       <h1 className="text-2xl font-semibold">Cash flow forecast</h1>
       <div
         role="alert"

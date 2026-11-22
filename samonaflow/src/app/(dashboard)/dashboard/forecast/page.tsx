@@ -58,7 +58,7 @@ export default async function ForecastPage({ searchParams }: { searchParams: Sea
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-6 px-6 py-12">
+    <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-10">
       <ForecastHeader horizon={query.horizon} />
       <ForecastSummary forecast={forecast} />
 

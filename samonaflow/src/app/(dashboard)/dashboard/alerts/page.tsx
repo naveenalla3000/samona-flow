@@ -56,7 +56,7 @@ export default async function AlertsPage({ searchParams }: { searchParams: Searc
   const counts = result.counts;
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-12">
+    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       <AlertsHeader
         title="Smart alerts"
         subtitle="Deterministic warnings from your invoices, expenses, receivables and cash-flow forecast. Evaluation runs only when you ask it to."

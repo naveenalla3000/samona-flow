@@ -18,9 +18,9 @@ function ForecastStat({ label, value, tone = "neutral" }: { label: string; value
         ? "text-negative"
         : "text-slate-900";
   return (
-    <div className="rounded-xl bg-white px-3 py-3">
+    <div className="min-w-0 overflow-hidden rounded-xl bg-white px-3 py-3">
       <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{label}</p>
-      <p className={`mt-1 text-sm font-semibold tabular-nums sm:text-base ${color}`}>{value}</p>
+      <p className={`mt-1 break-words text-sm font-semibold tabular-nums sm:text-base ${color}`}>{value}</p>
     </div>
   );
 }

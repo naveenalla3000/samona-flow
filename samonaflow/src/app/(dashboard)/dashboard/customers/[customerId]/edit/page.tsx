@@ -38,7 +38,7 @@ export default async function EditCustomerPage({
   const updateAction = updateCustomerAction.bind(null, customer.id);
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 py-12">
+    <main className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-10">
       <CustomersHeader title="Edit customer" subtitle={customer.name} />
       <CustomerForm
         submitLabel="Save changes"
