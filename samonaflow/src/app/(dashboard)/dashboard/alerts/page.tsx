@@ -16,6 +16,8 @@ import { resolveCurrentBusiness } from "@/server/auth/require-business";
 import { requireUser } from "@/server/auth/require-auth";
 import { alertService } from "@/server/services/alert-service";
 
+export const metadata = { title: "Alerts" };
+
 export const instant = false;
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

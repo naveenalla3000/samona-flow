@@ -13,6 +13,8 @@ import { requireUser } from "@/server/auth/require-auth";
 import { customerService } from "@/server/services/customer-service";
 
 // Session and database reads happen at request time.
+export const metadata = { title: "Customers" };
+
 export const instant = false;
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

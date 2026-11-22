@@ -1,6 +1,8 @@
 # samonaflow
 
-samonaFlow is a financial management SaaS platform for freelancers and independent professionals. The foundation includes the application scaffold, architecture folders, a health-check API, configuration, and Supabase email/password authentication with Prisma profile synchronization. The Customer, Invoice, Payment and Expense Management modules are implemented, each with a REST API, server-side tenant authorization and dashboard UI.
+SamonaFlow is a financial management SaaS platform for freelancers and independent professionals. It covers the full money workflow: onboarding and multiple business workspaces, customers, invoices, payments and reversals, expenses, reminders, a financial dashboard, cash-flow forecasting, what-if simulations and smart alerts. Every module has a REST API, server-side tenant authorization, and a server-rendered dashboard UI backed by PostgreSQL.
+
+The product is a modular monolith built on Next.js App Router, TypeScript in strict mode, Prisma and Supabase. Money is stored and calculated as fixed-point decimals (PostgreSQL `Decimal(12, 2)`, JavaScript `BigInt` minor units); no financial calculation uses floating point.
 
 ## Technology stack
 
@@ -29,6 +31,7 @@ npm run build      # production build
 npm run lint       # ESLint
 npm test           # node:test unit/integration tests
 npx tsc --noEmit   # TypeScript type check
+npm run db:seed-demo  # create the labelled demo dataset (see Demo dataset)
 ```
 
 ## Database (Supabase PostgreSQL)
@@ -42,11 +45,13 @@ The database is PostgreSQL hosted on Supabase, accessed through Prisma 7.10.1 wi
 
 ## Environment variables
 
-Copy the template to `.env` and fill in the values:
+Copy the template to `.env.local` (recommended by Next.js) or `.env`:
 
 ```bash
-cp .env.example .env
+cp .env.example .env.local
 ```
+
+Next.js loads `.env.local` before `.env`, so either works locally. The demo seed script loads both, preferring `.env.local`. Both files are git-ignored; only `.env.example` is tracked.
 
 | Variable | Purpose | Exposure |
 | --- | --- | --- |
@@ -55,6 +60,7 @@ cp .env.example .env
 | `NEXT_PUBLIC_APP_URL` | Public origin of this app, used for absolute Supabase redirect URLs | Browser-exposed (`NEXT_PUBLIC_` prefix) |
 | `DATABASE_URL` | PostgreSQL connection string used by Prisma at runtime | Server-only |
 | `DIRECT_URL` | Direct PostgreSQL connection string used by Prisma for migrations | Server-only |
+| `DEMO_USER_EMAIL` | Optional, seed-time only: the already-registered account that should own the demo business | Never read by the app at runtime |
 
 Never add `NEXT_PUBLIC_` to database credentials or to a Supabase service-role key, and never import them into client components. Only `NEXT_PUBLIC_*` values may be exposed to the browser; `DATABASE_URL` and `DIRECT_URL` must never be used in client code. Environment files such as `.env`, `.env.local` and `.env*.local` are git-ignored and must never be committed; only `.env.example` is tracked.
 
@@ -119,7 +125,7 @@ src/components/auth/            shared form controls
 1. **Signup**: the form is validated with the shared Zod schema on the client and again in the Server Function. Supabase sends a verification email to `NEXT_PUBLIC_APP_URL/auth/callback?next=...`. While verification is pending, **no** `UserProfile` is created and no business records are created.
 2. **Callback**: the `code` is exchanged for a session. Only after Supabase confirms the user's email is an idempotent `UserProfile.upsert` performed, using the Supabase Auth UUID as `UserProfile.id`. The user is redirected to a validated local `next` path.
 3. **Login**: credentials are verified by Supabase; the session is written to secure cookies, the profile is re-synced (idempotently), and the user is redirected to a validated local path. Invalid credentials and unconfirmed emails produce friendly, generic errors.
-4. **Session refresh**: `src/proxy.ts` runs `getUser()` on each matched request, refreshes cookies, and applies the anti-caching headers required by `@supabase/ssr`. It also redirects unauthenticated visitors away from `/dashboard` and authenticated visitors away from `/login` and `/signup`.
+4. **Session refresh**: `src/proxy.ts` runs `getUser()` on each matched request, refreshes cookies, and applies the anti-caching headers required by `@supabase/ssr`. It also redirects unauthenticated visitors away from `/dashboard` and `/onboarding`, and authenticated visitors away from `/login` and `/signup`.
 5. **Logout**: `supabase.auth.signOut()` clears the session; the user is redirected to `/login`.
 
 Cookies are `HttpOnly`, `SameSite=Lax`, `Path=/`, and `Secure` in production. No token or password is ever logged.
@@ -146,17 +152,85 @@ Business/tenant authorization is performed in the service layer. See [Customer M
 ### Local testing
 
 ```bash
-cp .env.example .env      # fill in Supabase URL and anon key
+cp .env.example .env.local   # fill in Supabase URL, anon key and database URLs
 npm run dev
 ```
 
 1. Visit `http://localhost:3000/signup` and create an account with a real inbox.
 2. Confirm the email using the Supabase verification link (it must resolve to `/auth/callback`).
-3. You should land on `/dashboard`; verify `UserProfile` has a row with the same UUID as `auth.users`.
-4. Reload `/dashboard` to confirm session persistence, then sign out and confirm `/dashboard` redirects to `/login`.
-5. Request a protected API without a session to confirm a `401` response.
+3. You should land on `/onboarding`; create your first business. Verify `UserProfile` has a row with the same UUID as `auth.users`, and the business has an `OWNER` membership.
+4. You should then reach `/dashboard`. Reload it to confirm session persistence, then sign out and confirm `/dashboard` redirects to `/login`.
+5. Open `/dashboard/settings`, change a non-financial setting, and confirm the change survives a reload. Add a second business from `/onboarding` and switch between businesses from the header.
+6. Request a protected API without a session to confirm a `401` response.
 
 With Cache Components enabled, the auth pages and `/dashboard` export `instant = false` because the session read happens at request time. Streaming/suspense-based static shells can be adopted later without changing the auth logic.
+
+## Businesses, onboarding and settings
+
+A `Business` row is the tenant boundary. A user may own or belong to more than one business; every other record (customers, invoices, payments, expenses, reminders, alerts, forecasts) carries a `businessId` and is only reachable through a verified `BusinessMembership`.
+
+### Routes and flows
+
+| Route | Purpose |
+| --- | --- |
+| `/onboarding` | Create the first business after signup, or add another business later |
+| `/dashboard` | Dashboard for the active business; redirects to `/onboarding` when the user has none |
+| `/dashboard/settings` | Profile, currency, timezone and opening-balance settings |
+
+Business management intentionally uses **Server Actions** rather than a REST API. The UI is the only client. The actions resolve the user from the verified session and never accept a user id or owner id from the form.
+
+### Creation and ownership
+
+`businessService.create` calls `businessRepository.createForOwner` inside one database transaction:
+
+1. Upsert the signed-in user's `UserProfile` (resilience if a profile sync was missed).
+2. Insert the `Business` with `ownerId` taken from the verified session.
+3. Insert the matching `BusinessMembership` with role `OWNER`.
+
+A failure in any step rolls the whole transaction back, so a business can never exist without an owner membership. The new business becomes active immediately.
+
+### Active business switching
+
+The active business is stored in the `samonaflow_active_business` cookie. The cookie contains **only a business id**:
+
+- `HttpOnly`, `SameSite=Lax`, `Path=/`, `Secure` in production, one-year expiry.
+- On every resolution, `resolveCurrentBusiness` validates the UUID and re-checks a `BusinessMembership` for `(verifiedUserId, businessId)`.
+- A forged, stale or removed membership id is ignored; the resolver falls back to the user's first membership.
+- Switching re-verifies membership before writing the cookie.
+- The cookie is never used as an authorization claim and is never trusted on its own.
+
+### Settings rules
+
+- Only the `OWNER` role (and the matching `Business.ownerId`) may update settings.
+- `currency` may be changed only while the business has no invoices, payments or expenses. Existing invoices snapshot their currency, and expenses have no currency column, so changing it later would silently reinterpret historical amounts. The UI states this lock and the service enforces it with `CURRENCY_LOCKED`.
+- `timezone` changes are allowed; they affect business-local overdue checks, reminder follow-up dates and forecast dates going forward.
+- `openingBalance` is a manual starting cash position and may be negative. It is a decimal string, never a floating-point number.
+- Changing `openingBalanceDate` changes which cash movements are included in the forecast. The UI warns that this is a starting position, not a live bank balance.
+
+### Implementation files
+
+```
+src/lib/validations/business.ts                     create/update Zod schemas
+src/types/business.ts                               BusinessRecord, BusinessSummary
+src/types/business-form.ts                          form state
+src/server/repositories/business-repository.ts      transactional create, owner-scoped update
+src/server/services/business-service.ts             membership/role/currency rules
+src/server/auth/active-business.ts                  httpOnly active-business cookie
+src/server/auth/require-business.ts                 cookie + membership resolution
+src/server/actions/business-actions.ts              create, update, switch Server Actions
+src/components/business/business-form.tsx           React Hook Form + useActionState
+src/components/business/business-switcher.tsx       active-business selector
+src/components/business/dashboard-nav.tsx           shared module navigation
+src/app/(onboarding)/onboarding/page.tsx            onboarding UI
+src/app/(dashboard)/layout.tsx                      authenticated shell + switcher
+src/app/(dashboard)/dashboard/settings/page.tsx     settings UI
+```
+
+### PRD/schema notes
+
+- The schema has no separate settings table; currency, timezone and opening balance are fields on `Business`, matching PRD table 8.1.
+- Business creation is not exposed as a public API because the product flow is UI-only. If an API is added later, it must reuse `businessService` so the transactional owner membership and currency rules cannot be bypassed.
+- Deleting a business is not offered in the UI. Financial child rows use `onDelete: Restrict`, preserving history.
 
 ## Customer Management
 
@@ -199,7 +273,7 @@ Every endpoint requires a verified session (`Authorization: Bearer <token>` or S
 
 - There is no DELETE endpoint. Customers are archived by setting `archivedAt` only.
 - `Invoice.customer` and `Reminder.customer` use `onDelete: Restrict`, so hard deletion cannot break financial history.
-- The detail response derives totals from invoices and their non-reversed payments. VOID invoices are excluded from totals but kept in history. `OVERDUE` counts use the stored status, since the business timezone is not available here.
+- The detail response derives totals from issued invoices and their non-reversed payments. `DRAFT` and `VOID` invoices are excluded from totals but kept in the invoice history. `OVERDUE` counts use the stored status, since the business timezone is not available here.
 - The PRD specifies no duplicate-customer rule and the schema has no unique constraint on name/email/phone, so duplicate customers are allowed by design.
 
 ### UI
@@ -539,44 +613,140 @@ No schema or migration change was needed and applied migrations were not edited.
 
 ## Financial dashboard
 
-Read-only summary of the current business's cash position, receivables, income, expenses, trends, recent activity and reminders. It computes from existing invoice, payment, expense and reminder data; no schema or migration change was needed and nothing is written.
+Read-only financial overview of the current business. It composes existing invoice, payment, expense, reminder, forecast and alert data; no schema or migration change was needed and nothing is written. The dashboard never calculates outstanding balances, overdue days or projections in the browser, and it never sends reminders or records payments.
 
 ### REST API
 
-All paths are nested under the verified business. Every endpoint is `GET` and requires a verified session plus a `BusinessMembership` for `(userId, businessId)`; a non-member receives the same not-found response as other business routes, so business existence is not revealed.
+All paths are nested under the verified business. Every endpoint is `GET` and requires a verified session plus a `BusinessMembership` for `(userId, businessId)`; a non-member receives `business_forbidden` (403) and no financial data.
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `GET` | `/api/v1/businesses/:businessId/dashboard/summary` | Headline cash, receivable, income, expense and count metrics for a range |
+| `GET` | `/api/v1/businesses/:businessId/dashboard/summary` | Six headline cards plus counts for a reporting period |
 | `GET` | `/api/v1/businesses/:businessId/dashboard/trends` | Zero-filled income, expense and invoicing buckets |
 | `GET` | `/api/v1/businesses/:businessId/dashboard/receivables` | Open receivables, overdue first, then by due date (cursor paginated) |
+| `GET` | `/api/v1/businesses/:businessId/dashboard/upcoming-expenses` | Unpaid expenses, overdue first, then by due date |
+| `GET` | `/api/v1/businesses/:businessId/dashboard/cash-flow` | 30/60/90-day projection delegated to the forecast service |
+| `GET` | `/api/v1/businesses/:businessId/dashboard/actions` | Active alerts, severity-descending, linked to their records |
+| `GET` | `/api/v1/businesses/:businessId/dashboard/transactions` | Recent active payments and paid expenses, newest first |
 | `GET` | `/api/v1/businesses/:businessId/dashboard/recent-activity` | Invoices and active payments merged by timestamp |
 | `GET` | `/api/v1/businesses/:businessId/dashboard/reminders` | Overdue and upcoming reminders with counts |
 
-- **Summary** query: either `preset` (`last_30_days` | `this_month` | `last_month` | `year_to_date`) or `from` and `to` (`YYYY-MM-DD`, both inclusive, business timezone, maximum 366 days). Response fields: `availableCash`, `totalReceivables`, `overdueReceivables`, `invoicedInPeriod`, `incomeInPeriod`, `expensesInPeriod`, `netCashMovementInPeriod`, `upcomingExpenses`, `overdueExpenses`, `customerCount`, `issuedInvoiceCount`, reminder counts, `currency` and `range`. Money is returned as canonical decimal strings in minor units, with `byCurrency` breakdowns.
+- **Summary** query: either `preset` (`this_month` | `last_month` | `last_30_days` | `last_90_days`, plus `year_to_date` retained for API compatibility) or `from` and `to` (`YYYY-MM-DD`, both inclusive, business timezone, maximum 366 days). Response fields: `availableCash`, `totalReceivables`, `overdueReceivables`, `invoicedInPeriod`, `incomeInPeriod`, `expensesInPeriod`, `netCashMovementInPeriod`, `upcomingExpenses`, `overdueExpenses`, `customerCount`, `issuedInvoiceCount`, reminder counts, `currency` and `range`.
 - **Trends** query: `from`, `to`, `granularity` (`day` | `week` | `month`, default `month`). Buckets are zero-filled; weeks start on Monday.
 - **Receivables** query: `limit` (1–100, default 25) and `cursor`. Overdue invoices come first, then ordered by due date.
+- **Upcoming expenses** query: `limit` (1–50, default 10).
+- **Cash flow** query: the forecast contract, `horizon=30|60|90` or the `days` alias, default 30; supplying both is rejected.
+- **Actions** query: `limit` (1–20, default 5).
+- **Transactions** query: `limit` (1–20, default 10).
 - **Recent activity** query: `limit` (1–20, default 10).
 - **Reminders** takes no query parameters. It returns overdue reminders and reminders due in the next 7 business days, with counts.
 
 Errors use the standard envelope (`invalid_request`, `unauthenticated`, `business_forbidden`, `internal_error`). Query parameters are validated with Zod.
 
-### Metric definitions
+### Reporting periods
 
-- **Outstanding** = invoice total minus active payments.
-- **Receivables** count only `SENT`, `PARTIALLY_PAID` and `OVERDUE` invoices with outstanding > 0.
-- **Overdue receivables** use the same overdue rule as `deriveDisplayStatus`.
-- **Income in period** = active payments by payment date. Reversed payments are excluded.
-- **Expenses in period** = `PAID` expenses by payment date.
-- **Net cash movement** = income minus expenses. It is **not** profit.
-- **Available cash** = opening balance plus net cash movement since the opening balance date. It is a manual position, not a bank balance.
-- **Invoiced in period** = issued invoices by issue date. It is shown separately from cash.
-- **Currency**: headline totals use the business currency only; other currencies appear in `byCurrency`. Expenses are treated as business currency because they have no currency column.
+`today` is `businessLocalDate(business.timezone)` (default `Asia/Kolkata`). Ranges are inclusive `YYYY-MM-DD` business-calendar dates, so a UTC timestamp near midnight cannot shift a period boundary.
 
-### Known gaps
+| Preset | Range |
+| --- | --- |
+| `this_month` | First day of the current business month through today |
+| `last_month` | First through last day of the previous business month |
+| `last_30_days` | Today minus 29 days through today (30 inclusive days) |
+| `last_90_days` | Today minus 89 days through today (90 inclusive days) |
+| `year_to_date` | January 1 through today (API compatibility; not shown in the page selector) |
 
-- There is no reminder completion state, so reminder counts may be lower bounds.
-- Trends do not include an outstanding receivables series.
+The page selector shows only the four required periods. Changing the period preserves the selected cash-flow horizon, and changing the horizon preserves the period. The 30/60/90 forecast horizon is separate from the reporting period: the cards and lists use the period, while the cash-flow overview uses the horizon.
+
+### Summary cards
+
+| Card | Formula |
+| --- | --- |
+| **Available cash** | Opening balance + active payments since `openingBalanceDate` − `PAID` expenses since `openingBalanceDate`, up to the business-local today. This is a manually maintained position, not a bank balance. |
+| **Total outstanding receivables** | Sum of `totalAmount − active payments` for `SENT`, `PARTIALLY_PAID` and `OVERDUE` invoices with outstanding > 0. |
+| **Overdue receivables** | The same outstanding amount for invoices that are stored `OVERDUE`, or are `SENT`/`PARTIALLY_PAID` past their due date with a positive outstanding. |
+| **Total upcoming expenses** | `UPCOMING` expenses due from today through the next 30 days inclusive. |
+| **Total income** | Active payments with `paymentDate` in the selected period. Reversed payments are excluded. |
+| **Total expenses** | `PAID` expenses with `paymentDate` in the selected period. |
+
+All card amounts are computed in `BIGINT` minor units by `src/lib/dashboard-metrics.ts` and serialized as integer minor-unit strings (`"12345"` = 123.45). `byCurrency` breakdowns accompany receivables, income and expenses. The headline uses the business currency; expenses are treated as business-currency amounts because they have no currency column. Net cash movement (`income − expenses`) is not profit.
+
+### Receivables
+
+- Only issued statuses (`SENT`, `PARTIALLY_PAID`, `OVERDUE`) with a positive outstanding balance are listed.
+- `outstanding` is calculated once in SQL as invoice total minus active, non-reversed payments. The frontend formats it and never recalculates it.
+- Ordering is overdue first, then due date, then id. The cursor is the composite `(sort_rank, due_date, id)`, so pagination is stable.
+- Each row includes customer, invoice number, total, paid, outstanding, due date, `daysOverdue`, stored `status`, date-derived `displayStatus`, `isOverdue` and `isPartiallyPaid`.
+- Overdue rows are visually emphasized; partial payments are badged. Invoice, customer and reminder links are provided; the reminder link only opens the existing draft flow and never sends anything.
+- The dashboard shows 10 rows per page with next/first-page controls. Loading, empty and section-level error states are rendered independently.
+
+### Upcoming expenses
+
+- Includes only `UPCOMING` and `OVERDUE` expenses; `PAID` and `CANCELLED` rows are excluded.
+- Overdue expenses come first (stored `OVERDUE` or due date before the business-local today), then due date, then id.
+- Each row includes description, category, amount, due date, stored status and date-derived `displayStatus`.
+- Rows link to the existing expense detail, where paying or cancelling remains an explicit user action. The empty state links to the new-expense form.
+
+### Cash-flow overview
+
+The overview delegates to `forecastService.getForecast(user, businessId, { horizon })`; eligibility, overdue scheduling, reversal exclusion, currency handling and projection math are not reimplemented. It exposes:
+
+- current cash, expected incoming and outgoing, net cash flow, projected closing balance, lowest projected balance and its date;
+- `shortageDate` and `becomesNegative`, with a prominent warning when the projected balance drops below zero;
+- a daily series for the Recharts chart (incoming/outgoing bars, projected balance line and zero reference line);
+- a link to `/dashboard/forecast?horizon=…` for the full breakdown.
+
+Forecast-derived money is a canonical 2-decimal major-unit string (for example `"1234.50"`), unlike summary minor-unit strings. The UI converts values to numbers only for chart geometry; every displayed amount comes from the server string. The projection is an estimate and is labelled with its last calculation time.
+
+### Financial Action Center
+
+- Calls the existing `alertService.list` with `status: "active"`, `sort: "severity"`, `direction: "desc"` and the requested limit, so critical alerts appear first and alert rules/dedupe stay in one place.
+- Shows severity, unread state, alert type, title, description and the alert's existing recommended action.
+- Links to the alert detail (which owns acknowledge/dismiss/resolve controls) and, when applicable, to the verified related invoice, expense, customer or forecast.
+- Shows active/unread/critical/warning/info counts and a link to the full alerts page. **Evaluate now** reuses the existing manual evaluation action; the dashboard never creates duplicate alerts automatically.
+- Nothing is auto-sent: reminder sending and payment recording remain explicit actions on their existing pages.
+
+### Recent transactions
+
+- Merges real, recorded cash movements only: active (non-reversed) payments and `PAID` expenses.
+- No synthetic transactions, drafts, unpaid expenses or reversed payments are shown.
+- Rows are sorted by business-local date descending, then id, and trimmed to the requested limit.
+- Each row shows payment/expense kind, date, description, invoice reference (payments), signed amount and a link to the existing payment or expense detail.
+
+### Authorization and tenant isolation
+
+- Every route authenticates with `requireUser`-equivalent logic and every service method re-checks `BusinessMembership` for `(user.id, businessId)` before any query.
+- The service passes only the verified `businessId` to repositories; query strings cannot override it.
+- All SQL and Prisma queries are business-scoped, including joins to invoices, customers and reversals.
+- Alert record links are derived deterministically from the alert's `relatedEntityType`/`relatedEntityId`. Alert creation already validates same-business ownership, and each target page repeats membership and business checks.
+- A non-member receives `business_forbidden` and no data; invalid identifiers and query parameters return `invalid_request`.
+- Section reads run in parallel (`Promise.allSettled` on the page) and aggregate in SQL, avoiding per-row queries and duplicate calculations.
+
+### UI and architecture
+
+`/dashboard` is a server-rendered page. It resolves the business and period on the server, loads sections independently, and renders a responsive professional layout: deep-blue primary actions, light neutral background, white cards, green positive values, amber warnings and red negative values. Accessibility includes semantic headings, table captions, screen-reader labels, visible focus rings and `aria-current` on selectors.
+
+| Area | Files |
+| --- | --- |
+| Types | `src/types/dashboard.ts` |
+| Metrics and period rules | `src/lib/dashboard-metrics.ts` |
+| Validation | `src/lib/validations/dashboard.ts` |
+| Repository | `src/server/repositories/dashboard-repository.ts` |
+| Service (forecast/alert injection) | `src/server/services/dashboard-service.ts` |
+| Controller | `src/server/controllers/dashboard-controller.ts` |
+| REST routes | `src/app/api/v1/businesses/[businessId]/dashboard/{summary,trends,receivables,upcoming-expenses,cash-flow,actions,transactions,recent-activity,reminders}/route.ts` |
+| Page and states | `src/app/(dashboard)/dashboard/{page,loading,error}.tsx` |
+| UI components | `src/components/dashboard/{dashboard-ui,cash-flow-overview,receivables-panel,upcoming-expenses-panel,action-center-panel,recent-transactions-panel}.tsx` |
+| Tests | `tests/{dashboard-metrics,dashboard-service,dashboard-routes,dashboard-ui}.test.ts` |
+
+### Assumptions and limitations
+
+- Available cash and the forecast depend on the manually maintained opening balance; they are not bank feeds.
+- The summary headline is single-currency (business currency). Other invoice currencies appear only in `byCurrency`; no exchange rate is invented.
+- The **Total upcoming expenses** card is a 30-day horizon. The upcoming-expenses list shows all unpaid expenses, not only the next 30 days.
+- "Overdue" is both a stored state and a date-derived state; stored `OVERDUE` wins, and issued invoices past due with a positive balance are treated as overdue.
+- Partial payment highlighting uses the stored `PARTIALLY_PAID` status and the paid amount; outstanding remains the authoritative server value.
+- Alerts reflect the most recent evaluation. The dashboard lists them; it does not evaluate on page load, send messages or mutate financial records.
+- Receivables are cursor-paginated; the other feeds are capped lists, not full histories.
 - The what-if cash flow simulator is documented below.
 
 ## Cash flow forecasting
@@ -984,10 +1154,82 @@ Errors use the shared envelope: `invalid_request` (400 with field errors), `unau
 - `today` is the business-local date from the business timezone, so a UTC timestamp near midnight can belong to a different business day. Evaluation uses one clock read for the date and the forecast.
 - The shortage alert is exactly the forecast engine's result for a 30-day horizon. Changing forecast eligibility or formulas changes the alert; the alert layer does not maintain a second cash-flow model.
 - Evaluation is explicit. Alerts become stale if financial records change and nobody runs an evaluation. There is no background scheduler, webhook, email, SMS or WhatsApp delivery, and no automatic reminder creation.
-- Dismissal is per alert row, not per user. The MVP has one business per owner, so read state is effectively per business. Multi-user read receipts are not modelled.
+- Dismissal is per alert row, not per user. Read state is shared by everyone in the business, so multi-user read receipts are not modelled.
 - Resolved rows are retained indefinitely; no retention or archival policy is defined.
 - The UI has no bulk read/dismiss, no snooze, and no alert preference/configuration screen.
 - `npm audit` reports pre-existing high-severity dependency findings unrelated to this feature.
+
+## Demo dataset and walkthrough
+
+The repository includes an idempotent demo seed for hackathon demos and acceptance testing. It creates a **separate** business named `[DEMO] SamonaFlow Studio`; every demo customer, invoice and expense is prefixed with `[DEMO]`, and demo notes say the record is sample data. It never writes into a real business and never deletes a record.
+
+### Create the demo data
+
+1. Sign up or sign in once so Supabase and the profile sync create a `UserProfile`.
+2. Run the seed with that account's email:
+
+```bash
+DEMO_USER_EMAIL=you@example.com npm run db:seed-demo
+```
+
+The script loads `.env.local` and then `.env`, uses the existing Prisma client, and is safe to re-run: fixed ids are upserted, invoice items are replaced transactionally, and alert evaluation is deterministic. If the demo business already belongs to another user, the seed stops instead of taking it over.
+
+What it creates:
+
+| Record | Count | Purpose |
+| --- | --- | --- |
+| Business | 1 | `[DEMO] SamonaFlow Studio`, INR, Asia/Kolkata, opening balance `150000.00` |
+| Customers | 4 | Active customers with contact details |
+| Invoices | 8 | Paid, partially paid, sent, overdue, draft and void examples |
+| Payments | 6 | Full, partial, multiple partials, and one reversed payment |
+| Expenses | 9 | Paid, upcoming, overdue and cancelled examples |
+| Reminders | 2 | One overdue draft and one marked-sent reminder |
+| Alerts | generated | Produced by the real alert engine during the seed |
+
+The demo includes a `[DEMO] New production workstation` expense and a quarterly tax set-aside so the 30/60/90-day forecast and shortage alerts have a meaningful story.
+
+### Demo walkthrough
+
+1. Sign in and choose `[DEMO] SamonaFlow Studio` in the header switcher.
+2. **Dashboard**: review available cash, outstanding receivables, overdue amount, upcoming expenses, the Action Center and recent transactions. Change the reporting period.
+3. **Customers**: open `[DEMO] Aarti Designs` to see the financial summary and invoice history, then edit and archive/restore a demo customer.
+4. **Invoices**: open `DEMO-0001` (overdue, partially paid), `DEMO-0002` (due soon), `DEMO-0003` (partial), `DEMO-0004` (paid), `DEMO-0005` (draft), `DEMO-0006` (void), `DEMO-0007` (reversed payment) and `DEMO-0008` (discount plus two partial payments).
+5. **Payments**: record a payment against `DEMO-0002`, then reverse it from the payment detail page. Confirm the invoice returns to its prior outstanding balance and that the reversal stays in history.
+6. **Expenses**: mark an upcoming expense paid and cancel another. Confirm the cash-flow totals change.
+7. **Reminders**: create a reminder from the overdue invoice, copy the generated message and open the WhatsApp click-to-chat link. Mark it sent.
+8. **Cash flow**: compare 30/60/90-day forecasts, inspect incoming/outgoing breakdowns, then run a what-if simulation (for example, delay a receivable or add a large expense).
+9. **Alerts**: evaluate alerts, then read, dismiss and resolve them. Confirm the Action Center links into the relevant workflow.
+10. **Settings**: confirm that currency is locked after activity while timezone and opening balance remain editable, with the documented warnings.
+
+The demo business is isolated by `businessId` like any other tenant. Do not enter real customer data into it. To remove it, delete its dependent records and then the business row; the schema deliberately uses `Restrict` on financial children to prevent accidental cascading deletion.
+
+## Known limitations
+
+- **No background scheduler.** Alerts are evaluated explicitly (UI/API), reminders are never sent automatically, and there is no email/SMS/WhatsApp delivery. WhatsApp is a click-to-chat link only.
+- **Single currency per business.** There is no FX conversion or multi-currency reporting. Invoices snapshot their currency; expenses use the business currency.
+- **No bank feeds or reconciliation.** Opening balance and recorded payments/expenses are the only cash inputs.
+- **Forecast is deterministic, not predictive.** It uses known invoice and expense dates and documented eligibility rules; it does not learn from history.
+- **Alerts can be stale.** If financial records change after evaluation, re-run evaluation. Resolved rows are retained; there is no retention policy, snooze or per-user read receipt.
+- **No member invitation or business transfer UI.** The schema supports `STAFF` memberships, but the product only creates the owner membership. Business deletion is not exposed.
+- **No tax filing, payroll, inventory, or accounting export.** The product is a cash-flow and receivables tool, not a general ledger.
+- **Auth basics only.** Email/password signup and login are implemented; password reset and social login are not part of this scope.
+- **Pre-existing dependency findings.** `npm audit` reports high-severity findings in the dependency tree; they are not introduced by the application code and are tracked separately.
+- **No real payment processing.** The public-token fields exist in the schema, but the product does not charge cards or reconcile a payment gateway.
+
+The detailed acceptance evidence, requirement mapping and verification results are in [`docs/acceptance-report.md`](docs/acceptance-report.md).
+
+## Deployment
+
+The app is a standard Next.js server deployment; no platform-specific configuration is committed. A typical release:
+
+1. Install with `npm ci` (the `postinstall` hook generates the Prisma client).
+2. Provide `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_APP_URL`, `DATABASE_URL` and `DIRECT_URL` in the host's environment. Never commit them.
+3. Apply committed migrations with `npx prisma migrate deploy` from a release job. Do not run migrations from the app runtime and do not use `db push`.
+4. Build with `npm run build` and start with `npm start`.
+5. Add the production `/auth/callback` origin to Supabase's redirect allow list and set the Supabase Site URL to the production origin.
+6. Verify `GET /api/v1/health` returns 200 and `database: "connected"` after deployment.
+
+The runtime uses the transaction pooler (`DATABASE_URL`); migrations use the direct/session connection (`DIRECT_URL`). No service-role key is required by the application.
 
 ## Connection pooling
 
@@ -1040,19 +1282,23 @@ Folder map (`src/`):
 ```
 app/
   (auth)/          login, signup, and auth/callback (route group)
-  (dashboard)/     authenticated dashboard + module pages (route group)
-  api/v1/          REST API route handlers (health, customers, invoices, payments, expenses, reminders, dashboard, forecast)
+  (onboarding)/    first-business / add-business setup (route group)
+  (dashboard)/     authenticated shell, navigation, business switcher + module pages
+  api/v1/          REST API route handlers (health, customers, invoices, payments, expenses, reminders, dashboard, forecast, simulations, alerts)
   layout.tsx
   page.tsx
 proxy.ts           Next.js 16 session refresh and route redirects
 components/
   auth/            authentication form controls
+  business/        business form, switcher and dashboard navigation
   customers/       customer list, filters, forms, pagination
   invoices/        invoice forms, previews and payment links
   payments/        payment and reversal forms
   expenses/        expense list, filters and forms
   reminders/       reminder list, filters, forms, badges and share actions
-  forecast/        forecast summary, chart, breakdowns, table and layout
+  dashboard/       dashboard cards, panels, period selector and loading states
+  alerts/          alert list, filters and actions
+  forecast/        forecast summary, chart, breakdowns, table and simulator
   ui/              generic UI primitives
   shared/          shared composite components
 modules/           feature modules
@@ -1061,17 +1307,21 @@ lib/
   config/          configuration
   supabase/        browser, server, and proxy Supabase clients
   utils/           generic helpers
-  validations/     Zod schemas
+  validations/     Zod schemas (auth, business, customer, invoice, payment, expense, reminder, dashboard, forecast, alert)
 server/
-  auth/            session verification, guards, business resolution, actions
+  auth/            session verification, guards, active-business resolution, actions
   controllers/     request parsing and response mapping
   services/        business logic and tenant authorization
   repositories/    data access (Prisma, scoped by businessId)
-  actions/         Server Actions for customer, invoice, payment, expense and reminder UIs
+  actions/         Server Actions for business, customer, invoice, payment, expense, reminder and alert UIs
   utils/           API response helpers
   middleware/      server-side middleware helpers
 types/             shared TypeScript types
 styles/            additional styles
+prisma/
+  schema.prisma    authoritative data model
+  migrations/      applied SQL migrations
+  seed-demo.ts     labelled, idempotent demo dataset
 ```
 
 ## Health check

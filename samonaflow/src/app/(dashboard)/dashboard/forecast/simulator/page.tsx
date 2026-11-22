@@ -11,6 +11,8 @@ import { requireUser } from "@/server/auth/require-auth";
 import { resolveCurrentBusiness } from "@/server/auth/require-business";
 import { forecastService } from "@/server/services/forecast-service";
 
+export const metadata = { title: "What-if simulator" };
+
 export const instant = false;
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

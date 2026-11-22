@@ -10,6 +10,8 @@ import { customerService } from "@/server/services/customer-service";
 import { invoiceService } from "@/server/services/invoice-service";
 
 // Session, search params and database reads happen at request time.
+export const metadata = { title: "Invoices" };
+
 export const instant = false;
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

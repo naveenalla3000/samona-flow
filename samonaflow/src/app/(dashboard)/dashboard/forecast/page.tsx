@@ -18,6 +18,8 @@ import { resolveCurrentBusiness } from "@/server/auth/require-business";
 import { requireUser } from "@/server/auth/require-auth";
 import { forecastService } from "@/server/services/forecast-service";
 
+export const metadata = { title: "Cash flow forecast" };
+
 export const instant = false;
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

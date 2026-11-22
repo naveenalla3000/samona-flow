@@ -4,12 +4,16 @@
 // a database or a Supabase session.
 import type { z } from "zod";
 import {
+  actionsQuerySchema,
   businessIdSchema,
+  cashFlowQuerySchema,
   receivablesQuerySchema,
   recentActivityQuerySchema,
   remindersQuerySchema,
   summaryQuerySchema,
+  transactionsQuerySchema,
   trendsQuerySchema,
+  upcomingExpensesQuerySchema,
 } from "@/lib/validations/dashboard";
 import type { AuthenticatedUser } from "@/server/auth/auth-types";
 import { DashboardServiceError, type DashboardService } from "@/server/services/dashboard-service";
@@ -25,6 +29,10 @@ export interface DashboardController {
   summary(request: Request, businessId: string): Promise<Response>;
   trends(request: Request, businessId: string): Promise<Response>;
   receivables(request: Request, businessId: string): Promise<Response>;
+  upcomingExpenses(request: Request, businessId: string): Promise<Response>;
+  cashFlow(request: Request, businessId: string): Promise<Response>;
+  actions(request: Request, businessId: string): Promise<Response>;
+  transactions(request: Request, businessId: string): Promise<Response>;
   recentActivity(request: Request, businessId: string): Promise<Response>;
   reminders(request: Request, businessId: string): Promise<Response>;
 }
@@ -123,6 +131,26 @@ export function createDashboardController(dependencies: {
     receivables(request, rawBusinessId) {
       return run(request, rawBusinessId, receivablesQuerySchema, (user, businessId, query) =>
         service.getReceivables(user, businessId, query),
+      );
+    },
+    upcomingExpenses(request, rawBusinessId) {
+      return run(request, rawBusinessId, upcomingExpensesQuerySchema, (user, businessId, query) =>
+        service.getUpcomingExpenses(user, businessId, query),
+      );
+    },
+    cashFlow(request, rawBusinessId) {
+      return run(request, rawBusinessId, cashFlowQuerySchema, (user, businessId, query) =>
+        service.getCashFlow(user, businessId, query),
+      );
+    },
+    actions(request, rawBusinessId) {
+      return run(request, rawBusinessId, actionsQuerySchema, (user, businessId, query) =>
+        service.getActions(user, businessId, query),
+      );
+    },
+    transactions(request, rawBusinessId) {
+      return run(request, rawBusinessId, transactionsQuerySchema, (user, businessId, query) =>
+        service.getTransactions(user, businessId, query),
       );
     },
     recentActivity(request, rawBusinessId) {

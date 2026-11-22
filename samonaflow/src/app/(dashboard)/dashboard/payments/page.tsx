@@ -11,6 +11,8 @@ import { resolveCurrentBusiness } from "@/server/auth/require-business";
 import { requireUser } from "@/server/auth/require-auth";
 import { paymentService } from "@/server/services/payment-service";
 
+export const metadata = { title: "Payments" };
+
 export const instant = false;
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

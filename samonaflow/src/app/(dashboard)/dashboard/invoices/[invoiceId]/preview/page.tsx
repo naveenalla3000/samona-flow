@@ -10,6 +10,8 @@ import { prismaInvoiceRepository } from "@/server/repositories/invoice-repositor
 import { InvoiceServiceError, invoiceService } from "@/server/services/invoice-service";
 import type { InvoiceBusinessProfile, InvoiceDetail } from "@/types/invoice";
 
+export const metadata = { title: "Invoice preview" };
+
 export const instant = false;
 
 export default async function InvoicePreviewPage({

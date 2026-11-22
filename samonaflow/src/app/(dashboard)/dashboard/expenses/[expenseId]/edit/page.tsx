@@ -8,6 +8,8 @@ import { requireUser } from "@/server/auth/require-auth";
 import { ExpenseServiceError, expenseService } from "@/server/services/expense-service";
 import type { ExpenseDetail } from "@/types/expense";
 
+export const metadata = { title: "Edit expense" };
+
 export const instant = false;
 
 export default async function EditExpensePage({

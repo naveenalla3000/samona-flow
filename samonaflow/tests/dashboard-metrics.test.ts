@@ -89,6 +89,13 @@ test("resolvePreset last_30_days spans 30 inclusive days ending today", () => {
   });
 });
 
+test("resolvePreset last_90_days spans 90 inclusive days ending today", () => {
+  // 2024-03-31 is day 91 of the leap year, so 89 days earlier is 2024-01-02.
+  const range = resolvePreset("last_90_days", "2024-03-31");
+  assert.deepEqual(range, { from: "2024-01-02", to: "2024-03-31" });
+  assert.equal(daysBetween(range.from, range.to) + 1, 90);
+});
+
 test("resolvePreset this_month runs from the 1st to today", () => {
   assert.deepEqual(resolvePreset("this_month", "2024-03-10"), {
     from: "2024-03-01",

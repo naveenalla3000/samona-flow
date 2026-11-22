@@ -17,6 +17,8 @@ import { requireUser } from "@/server/auth/require-auth";
 import { prismaInvoiceRepository } from "@/server/repositories/invoice-repository";
 import { invoiceService } from "@/server/services/invoice-service";
 
+export const metadata = { title: "New reminder" };
+
 export const instant = false;
 
 const REMINDABLE = ["SENT", "PARTIALLY_PAID", "OVERDUE"];

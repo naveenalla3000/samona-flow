@@ -15,7 +15,11 @@ export async function proxy(request: NextRequest) {
   const { response, user } = await updateSession(request);
 
   const isAuthPage = AUTH_PATHS.has(pathname);
-  const isProtectedPage = pathname === "/dashboard" || pathname.startsWith("/dashboard/");
+  const isProtectedPage =
+    pathname === "/dashboard" ||
+    pathname.startsWith("/dashboard/") ||
+    pathname === "/onboarding" ||
+    pathname.startsWith("/onboarding/");
 
   if (isProtectedPage && !user) {
     const loginUrl = request.nextUrl.clone();

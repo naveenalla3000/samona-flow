@@ -5,6 +5,8 @@ import { resolveCurrentBusiness } from "@/server/auth/require-business";
 import { requireUser } from "@/server/auth/require-auth";
 import type { ExpenseFormValues } from "@/types/expense-form";
 
+export const metadata = { title: "New expense" };
+
 export const instant = false;
 
 const EMPTY_VALUES: ExpenseFormValues = {

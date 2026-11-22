@@ -14,6 +14,8 @@ import { requireUser } from "@/server/auth/require-auth";
 import { ReminderServiceError, reminderService } from "@/server/services/reminder-service";
 import type { ReminderDetail } from "@/types/reminder";
 
+export const metadata = { title: "Edit reminder" };
+
 export const instant = false;
 
 export default async function EditReminderPage({

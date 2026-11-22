@@ -140,7 +140,9 @@ export function createFakeCustomers(seed: CustomerRecord[] = []) {
       if (!row) return null;
 
       const customerInvoices = invoices.get(key(businessId, customerId)) ?? [];
-      const active = customerInvoices.filter((invoice) => invoice.status !== "VOID");
+      const active = customerInvoices.filter(
+        (invoice) => invoice.status !== "VOID" && invoice.status !== "DRAFT",
+      );
       const totalInvoiced = active.reduce((sum, i) => sum + Number(i.totalAmount), 0);
       const totalPaymentsReceived = active.reduce((sum, i) => sum + Number(i.amountPaid), 0);
 
