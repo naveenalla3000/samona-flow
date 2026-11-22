@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { ExpenseForm } from "@/components/expenses/expense-form";
 import { ExpensesHeader, NoBusinessState } from "@/components/expenses/expense-layout";
 import { expenseIdSchema } from "@/lib/validations/expense";
@@ -17,6 +18,7 @@ export default async function EditExpensePage({
 }: {
   params: Promise<{ expenseId: string }>;
 }) {
+  await connection();
   const user = await requireUser();
   const business = await resolveCurrentBusiness(user);
   if (!business.ok) return <NoBusinessState />;

@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { connection } from "next/server";
 import { InvoiceForm } from "@/components/invoices/invoice-form";
 import { InvoicesHeader, NoBusinessState } from "@/components/invoices/invoice-layout";
 import { invoiceIdSchema } from "@/lib/validations/invoice";
@@ -19,6 +20,7 @@ export default async function EditInvoicePage({
 }: {
   params: Promise<{ invoiceId: string }>;
 }) {
+  await connection();
   const user = await requireUser();
   const business = await resolveCurrentBusiness(user);
   if (!business.ok) return <NoBusinessState />;

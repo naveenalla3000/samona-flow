@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { METHOD_LABELS, NoBusinessState, PaymentStatusBadge, PaymentsHeader } from "@/components/payments/payment-layout";
 import { ReversalForm } from "@/components/payments/reversal-form";
@@ -14,11 +15,13 @@ export const metadata = { title: "Payment" };
 
 export const instant = false;
 
+
 export default async function PaymentDetailPage({
   params,
 }: {
   params: Promise<{ paymentId: string }>;
 }) {
+  await connection();
   const user = await requireUser();
   const business = await resolveCurrentBusiness(user);
   if (!business.ok) return <NoBusinessState />;

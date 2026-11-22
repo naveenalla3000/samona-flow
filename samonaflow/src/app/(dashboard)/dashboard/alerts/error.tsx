@@ -21,7 +21,7 @@ export default function AlertsError({ error, reset }: AlertsErrorProps) {
       <button
         type="button"
         onClick={() => reset()}
-        className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900"
+        className="rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 dark:bg-blue-600 dark:text-white"
       >
         Retry
       </button>

@@ -47,7 +47,7 @@ export function ForecastHorizonSelector({
           aria-current={option === horizon ? "page" : undefined}
           className={`rounded-md border px-3 py-2 text-sm font-medium ${
             option === horizon
-              ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900"
+              ? "border-blue-900 bg-blue-900 text-white dark:border-blue-600 dark:bg-blue-600 dark:text-white"
               : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
           }`}
         >
@@ -185,7 +185,7 @@ export function ForecastNoBusinessState() {
         <p className="mt-2 text-sm text-neutral-500">
           Create a business and record invoices or expenses before forecasting.
         </p>
-        <Link href="/onboarding" className="mt-4 inline-flex rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900">Set up business</Link>
+        <Link href="/onboarding" className="mt-4 inline-flex rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 dark:bg-blue-600 dark:text-white">Set up business</Link>
       </div>
     </main>
   );

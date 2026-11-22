@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { PaymentFilters } from "@/components/payments/payment-filters";
 import { PaymentHistory } from "@/components/payments/payment-history";
 import { PaymentPagination } from "@/components/payments/payment-pagination";
@@ -21,7 +22,9 @@ function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
+
 export default async function PaymentsPage({ searchParams }: { searchParams: SearchParams }) {
+  await connection();
   const user = await requireUser();
   const business = await resolveCurrentBusiness(user);
   if (!business.ok) return <NoBusinessState />;

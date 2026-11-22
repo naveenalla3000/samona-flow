@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { CopyReminderButton, ReminderActions } from "@/components/reminders/reminder-actions";
 import {
@@ -23,6 +24,7 @@ export default async function ReminderDetailPage({
 }: {
   params: Promise<{ reminderId: string }>;
 }) {
+  await connection();
   const user = await requireUser();
   const business = await resolveCurrentBusiness(user);
   if (!business.ok) return <NoBusinessState />;

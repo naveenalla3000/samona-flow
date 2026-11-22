@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { CustomerFilters } from "@/components/customers/customer-filters";
 import { CustomerList } from "@/components/customers/customer-list";
 import { CustomerPagination } from "@/components/customers/customer-pagination";
@@ -24,6 +25,7 @@ function first(value: string | string[] | undefined): string | undefined {
 }
 
 export default async function CustomersPage({ searchParams }: { searchParams: SearchParams }) {
+  await connection();
   const user = await requireUser();
   const business = await resolveCurrentBusiness(user);
   if (!business.ok) return <NoBusinessState />;
@@ -54,7 +56,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Se
         action={
           <Link
             href="/dashboard/customers/new"
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:bg-neutral-100 dark:text-neutral-900"
+            className="rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-900 dark:bg-blue-600 dark:text-white"
           >
             Add customer
           </Link>

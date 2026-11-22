@@ -69,7 +69,7 @@ export function ReminderFilters({ query }: { query: ListRemindersQuery }) {
       <div className="flex items-end gap-3 sm:col-span-2 lg:col-span-4">
         <button
           type="submit"
-          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900"
+          className="rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 dark:bg-blue-600 dark:text-white"
         >
           Apply filters
         </button>

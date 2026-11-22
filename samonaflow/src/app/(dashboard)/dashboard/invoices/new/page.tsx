@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { InvoiceForm } from "@/components/invoices/invoice-form";
 import { InvoicesHeader, NoBusinessState } from "@/components/invoices/invoice-layout";
 import { businessLocalDate, dateAfter } from "@/lib/business-date";
@@ -13,7 +14,9 @@ export const metadata = { title: "New invoice" };
 
 export const instant = false;
 
+
 export default async function NewInvoicePage() {
+  await connection();
   const user = await requireUser();
   const business = await resolveCurrentBusiness(user);
   if (!business.ok) return <NoBusinessState />;

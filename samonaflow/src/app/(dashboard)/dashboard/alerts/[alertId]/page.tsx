@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { AlertLifecycleActions } from "@/components/alerts/alert-actions";
 import {
@@ -29,6 +30,7 @@ export default async function AlertDetailPage({
 }: {
   params: Promise<{ alertId: string }>;
 }) {
+  await connection();
   const user = await requireUser();
   const business = await resolveCurrentBusiness(user);
   if (!business.ok) return <NoBusinessState />;

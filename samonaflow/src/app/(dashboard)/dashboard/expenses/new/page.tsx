@@ -1,4 +1,5 @@
 import { ExpenseForm } from "@/components/expenses/expense-form";
+import { connection } from "next/server";
 import { ExpensesHeader, NoBusinessState } from "@/components/expenses/expense-layout";
 import { createExpenseAction } from "@/server/actions/expense-actions";
 import { resolveCurrentBusiness } from "@/server/auth/require-business";
@@ -20,6 +21,7 @@ const EMPTY_VALUES: ExpenseFormValues = {
 };
 
 export default async function NewExpensePage() {
+  await connection();
   const user = await requireUser();
   const business = await resolveCurrentBusiness(user);
   if (!business.ok) return <NoBusinessState />;

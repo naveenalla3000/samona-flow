@@ -1,4 +1,5 @@
 import { CustomerForm } from "@/components/customers/customer-form";
+import { connection } from "next/server";
 import { CustomersHeader, NoBusinessState } from "@/components/customers/customer-layout";
 import { createCustomerAction } from "@/server/actions/customer-actions";
 import { resolveCurrentBusiness } from "@/server/auth/require-business";
@@ -19,6 +20,7 @@ const EMPTY_VALUES: CustomerFormValues = {
 };
 
 export default async function NewCustomerPage() {
+  await connection();
   const user = await requireUser();
   const business = await resolveCurrentBusiness(user);
   if (!business.ok) return <NoBusinessState />;

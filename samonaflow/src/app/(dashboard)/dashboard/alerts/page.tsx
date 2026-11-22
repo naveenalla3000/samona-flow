@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import {
   AlertFilters,
 } from "@/components/alerts/alert-filters";
@@ -27,6 +28,7 @@ function first(value: string | string[] | undefined): string | undefined {
 }
 
 export default async function AlertsPage({ searchParams }: { searchParams: SearchParams }) {
+  await connection();
   const user = await requireUser();
   const business = await resolveCurrentBusiness(user);
   if (!business.ok) return <NoBusinessState />;
