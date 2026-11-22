@@ -17,8 +17,8 @@ import type {
 import type { ReminderRecord } from "@/types/reminder";
 
 const FIELD_CLASS =
-  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100";
-const LABEL_CLASS = "block text-sm font-medium text-neutral-800 dark:text-neutral-200";
+  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 disabled:opacity-60";
+const LABEL_CLASS = "block text-sm font-medium text-neutral-800";
 
 export type InvoiceOption = {
   id: string;
@@ -35,7 +35,7 @@ export type InvoiceOption = {
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
   return (
-    <p id={id} role="alert" className="mt-1 text-sm text-red-600 dark:text-red-400">
+    <p id={id} role="alert" className="mt-1 text-sm text-red-600">
       {message}
     </p>
   );
@@ -46,7 +46,7 @@ function FormError({ state }: { state: ReminderFormState }) {
   return (
     <div
       role="alert"
-      className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+      className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
     >
       {state.message}
     </div>
@@ -160,7 +160,7 @@ export function ReminderForm({
         </div>
       </div>
 
-      <p className="rounded-md border border-neutral-200 p-3 text-xs text-neutral-500 dark:border-neutral-800">
+      <p className="rounded-md border border-neutral-200 p-3 text-xs text-neutral-500">
         Generating a reminder only creates draft text. Opening WhatsApp or marking it sent is recorded by you; no message is delivered automatically.
       </p>
 
@@ -168,13 +168,13 @@ export function ReminderForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-900 disabled:opacity-60 dark:bg-blue-600 dark:text-white"
+          className="rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-900 disabled:opacity-60"
         >
           {pending ? "Generating…" : "Generate reminder"}
         </button>
         <a
           href={cancelHref}
-          className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:border-neutral-700 dark:hover:bg-neutral-800"
+          className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
         >
           Cancel
         </a>
@@ -248,7 +248,7 @@ export function ReminderEditForm({
           </div>
         </>
       ) : (
-        <p className="rounded-md border border-neutral-200 p-3 text-sm text-neutral-500 dark:border-neutral-800">
+        <p className="rounded-md border border-neutral-200 p-3 text-sm text-neutral-500">
           This reminder is no longer a draft, so its message is kept as history. You can only reschedule the next follow-up date.
         </p>
       )}
@@ -270,13 +270,13 @@ export function ReminderEditForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:opacity-60 dark:bg-blue-600 dark:text-white"
+          className="rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:opacity-60"
         >
           {pending ? "Saving…" : "Save reminder"}
         </button>
         <a
           href={cancelHref}
-          className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
+          className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-100"
         >
           Cancel
         </a>

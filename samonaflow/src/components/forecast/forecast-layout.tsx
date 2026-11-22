@@ -3,10 +3,10 @@ import type { ReactNode } from "react";
 import { FORECAST_HORIZONS, type ForecastHorizon } from "@/types/forecast";
 
 const CARD_CLASS =
-  "rounded-lg border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
+  "rounded-lg border border-neutral-200 bg-white p-4 shadow-sm";
 
-const NEGATIVE_CLASS = "text-red-600 dark:text-red-400";
-const POSITIVE_CLASS = "text-emerald-700 dark:text-emerald-400";
+const NEGATIVE_CLASS = "text-red-600";
+const POSITIVE_CLASS = "text-emerald-700";
 
 export function ForecastHeader({ horizon }: { horizon: ForecastHorizon }) {
   return (
@@ -47,8 +47,8 @@ export function ForecastHorizonSelector({
           aria-current={option === horizon ? "page" : undefined}
           className={`rounded-md border px-3 py-2 text-sm font-medium ${
             option === horizon
-              ? "border-blue-900 bg-blue-900 text-white dark:border-blue-600 dark:bg-blue-600 dark:text-white"
-              : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
+              ? "border-blue-900 bg-blue-900 text-white"
+              : "border-neutral-300 bg-white text-neutral-700 hover:bg-white"
           }`}
         >
           {option} days
@@ -121,8 +121,8 @@ export function ForecastStat({
       : tone === "positive"
         ? POSITIVE_CLASS
         : tone === "warning"
-          ? "text-amber-700 dark:text-amber-400"
-          : "text-neutral-900 dark:text-neutral-100";
+          ? "text-amber-700"
+          : "text-neutral-900";
 
   return (
     <div className={CARD_CLASS}>
@@ -180,12 +180,12 @@ export function ForecastNoBusinessState() {
   return (
     <main className="mx-auto w-full max-w-5xl px-6 py-12">
       <h1 className="text-2xl font-semibold">Cash flow forecast</h1>
-      <div className="mt-6 rounded-lg border border-dashed border-neutral-300 p-10 text-center dark:border-neutral-700">
+      <div className="mt-6 rounded-lg border border-dashed border-neutral-300 p-10 text-center">
         <h2 className="text-lg font-medium">No business set up yet</h2>
         <p className="mt-2 text-sm text-neutral-500">
           Create a business and record invoices or expenses before forecasting.
         </p>
-        <Link href="/onboarding" className="mt-4 inline-flex rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 dark:bg-blue-600 dark:text-white">Set up business</Link>
+        <Link href="/onboarding" className="mt-4 inline-flex rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800">Set up business</Link>
       </div>
     </main>
   );
@@ -197,7 +197,7 @@ export function ForecastLoadError() {
       <h1 className="text-2xl font-semibold">Cash flow forecast</h1>
       <div
         role="alert"
-        className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+        className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
       >
         We couldn&apos;t load the forecast right now. Please try again.
       </div>

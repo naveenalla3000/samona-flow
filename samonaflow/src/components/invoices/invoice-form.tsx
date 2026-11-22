@@ -16,14 +16,14 @@ type InvoiceFormProps = {
 };
 
 const FIELD_CLASS =
-  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100";
-const LABEL_CLASS = "block text-sm font-medium text-neutral-800 dark:text-neutral-200";
+  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 disabled:opacity-60";
+const LABEL_CLASS = "block text-sm font-medium text-neutral-800";
 const MONEY_PATTERN = /^\d+(\.\d{1,2})?$/;
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
   return (
-    <p id={id} role="alert" className="mt-1 text-sm text-red-600 dark:text-red-400">
+    <p id={id} role="alert" className="mt-1 text-sm text-red-600">
       {message}
     </p>
   );
@@ -89,7 +89,7 @@ export function InvoiceForm({
       {state.status === "error" && state.message ? (
         <div
           role="alert"
-          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
         >
           {state.message}
         </div>
@@ -187,7 +187,7 @@ export function InvoiceForm({
           <button
             type="button"
             onClick={() => append({ description: "", quantity: "1", unitPrice: "0.00" })}
-            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:border-neutral-700 dark:hover:bg-neutral-800"
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
           >
             Add item
           </button>
@@ -208,7 +208,7 @@ export function InvoiceForm({
             return (
               <li
                 key={field.id}
-                className="grid gap-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800 sm:grid-cols-[2fr_1fr_1fr_auto]"
+                className="grid gap-4 rounded-lg border border-neutral-200 p-4 sm:grid-cols-[2fr_1fr_1fr_auto]"
               >
                 <div>
                   <label htmlFor={`items.${index}.description`} className={LABEL_CLASS}>
@@ -259,7 +259,7 @@ export function InvoiceForm({
                     type="button"
                     onClick={() => remove(index)}
                     disabled={fields.length === 1}
-                    className="rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-40 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40"
+                    className="rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-40"
                     aria-label={`Remove item ${index + 1}`}
                   >
                     Remove
@@ -325,7 +325,7 @@ export function InvoiceForm({
         </div>
       </section>
 
-      <section aria-labelledby="estimate-heading" className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+      <section aria-labelledby="estimate-heading" className="rounded-lg border border-neutral-200 p-4">
         <h2 id="estimate-heading" className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
           Live estimate (server recalculates on save)
         </h2>
@@ -342,7 +342,7 @@ export function InvoiceForm({
             <dt>Tax</dt>
             <dd className="tabular-nums">+{estimate.tax}</dd>
           </div>
-          <div className="flex justify-between border-t border-neutral-200 pt-2 text-base font-semibold dark:border-neutral-800">
+          <div className="flex justify-between border-t border-neutral-200 pt-2 text-base font-semibold">
             <dt>Estimated total</dt>
             <dd className="tabular-nums">{estimate.totalAmount}</dd>
           </div>
@@ -353,13 +353,13 @@ export function InvoiceForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-900 disabled:opacity-60 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-500"
+          className="rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-900 disabled:opacity-60"
         >
           {pending ? "Saving..." : submitLabel}
         </button>
         <a
           href={cancelHref}
-          className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:border-neutral-700 dark:hover:bg-neutral-800"
+          className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
         >
           Cancel
         </a>

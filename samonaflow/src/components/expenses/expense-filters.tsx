@@ -2,13 +2,13 @@ import { EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABELS } from "@/lib/expense-statu
 import type { ListExpensesQuery } from "@/lib/validations/expense";
 
 const INPUT_CLASS =
-  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 dark:border-neutral-700 dark:bg-neutral-900";
+  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10";
 const SELECT_CLASS =
-  "rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 dark:border-neutral-700 dark:bg-neutral-900";
+  "rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10";
 
 export function ExpenseFilters({ query }: { query: ListExpensesQuery }) {
   return (
-    <form method="get" className="mt-6 grid gap-3 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800 sm:grid-cols-2 lg:grid-cols-4">
+    <form method="get" className="mt-6 grid gap-3 rounded-lg border border-neutral-200 p-4 sm:grid-cols-2 lg:grid-cols-4">
       <div className="lg:col-span-2">
         <label htmlFor="search" className="mb-1 block text-sm font-medium">Search</label>
         <input
@@ -67,7 +67,7 @@ export function ExpenseFilters({ query }: { query: ListExpensesQuery }) {
       <div className="flex items-end lg:col-span-4">
         <button
           type="submit"
-          className="rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 dark:bg-blue-600 dark:text-white"
+          className="rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800"
         >
           Apply filters
         </button>

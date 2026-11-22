@@ -8,13 +8,13 @@ import { Money } from "./forecast-layout";
 const TABLE_CLASS =
   "w-full min-w-[640px] text-left text-sm";
 const HEAD_CLASS =
-  "bg-neutral-50 text-xs uppercase tracking-wide text-neutral-500 dark:bg-neutral-900";
+  "bg-white text-xs uppercase tracking-wide text-neutral-500";
 const CELL_CLASS = "px-3 py-2";
 
 function OverdueBadge({ show }: { show: boolean }) {
   if (!show) return null;
   return (
-    <span className="inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-950/50 dark:text-amber-300">
+    <span className="inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">
       Overdue
     </span>
   );
@@ -29,14 +29,14 @@ export function ForecastIncomingBreakdown({
 }) {
   if (items.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500 dark:border-neutral-700">
+      <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500">
         No eligible outstanding invoices in this horizon.
       </p>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
+    <div className="overflow-x-auto rounded-lg border border-neutral-200">
       <table className={TABLE_CLASS}>
         <thead className={HEAD_CLASS}>
           <tr>
@@ -48,7 +48,7 @@ export function ForecastIncomingBreakdown({
             <th scope="col" className={`${CELL_CLASS} font-medium`}>Status</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+        <tbody className="divide-y divide-neutral-200">
           {items.map((item) => (
             <tr key={item.invoiceId}>
               <td className={`${CELL_CLASS} font-medium`}>{item.invoiceNumber}</td>
@@ -81,14 +81,14 @@ export function ForecastOutgoingBreakdown({
 }) {
   if (items.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500 dark:border-neutral-700">
+      <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500">
         No unpaid expenses in this horizon.
       </p>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
+    <div className="overflow-x-auto rounded-lg border border-neutral-200">
       <table className={TABLE_CLASS}>
         <thead className={HEAD_CLASS}>
           <tr>
@@ -100,7 +100,7 @@ export function ForecastOutgoingBreakdown({
             <th scope="col" className={`${CELL_CLASS} font-medium`}>Status</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+        <tbody className="divide-y divide-neutral-200">
           {items.map((item) => (
             <tr key={item.expenseId}>
               <td className={`${CELL_CLASS} font-medium`}>{item.title}</td>

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { sanitizeNextPath } from "@/lib/auth/safe-redirect";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { toVerifiedIdentity } from "@/server/auth/identity";
+import { resolvePostAuthPath } from "@/server/auth/post-auth-redirect";
 import { syncUserProfile } from "@/server/auth/profile-sync";
 
 const NO_STORE = { "Cache-Control": "no-store" };
@@ -17,7 +17,6 @@ function loginError(request: NextRequest, reason: string): NextResponse {
  * Supabase has confirmed the code and the user's email address.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const next = sanitizeNextPath(request.nextUrl.searchParams.get("next"));
   const code = request.nextUrl.searchParams.get("code");
 
   if (!code) {
@@ -40,5 +39,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     await syncUserProfile(identity);
   }
 
-  return NextResponse.redirect(new URL(next, request.url), { headers: NO_STORE });
+  const destination = identity
+    ? await resolvePostAuthPath(identity, request.nextUrl.searchParams.get("next"))
+    : "/onboarding";
+
+  return NextResponse.redirect(new URL(destination, request.url), { headers: NO_STORE });
 }

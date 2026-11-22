@@ -26,10 +26,10 @@ export function NoBusinessState() {
   return (
     <main className="mx-auto w-full max-w-5xl px-6 py-12">
       <h1 className="text-2xl font-semibold">Reminders</h1>
-      <div className="mt-6 rounded-lg border border-dashed border-neutral-300 p-10 text-center dark:border-neutral-700">
+      <div className="mt-6 rounded-lg border border-dashed border-neutral-300 p-10 text-center">
         <h2 className="text-lg font-medium">No business set up yet</h2>
         <p className="mt-2 text-sm text-neutral-500">Create your business workspace to start generating reminders.</p>
-        <Link href="/onboarding" className="mt-4 inline-flex rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 dark:bg-blue-600 dark:text-white">Set up business</Link>
+        <Link href="/onboarding" className="mt-4 inline-flex rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800">Set up business</Link>
       </div>
     </main>
   );
@@ -41,7 +41,7 @@ export function ReminderLoadError() {
       <h1 className="text-2xl font-semibold">Reminders</h1>
       <div
         role="alert"
-        className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+        className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
       >
         We couldn&apos;t load reminders right now. Please try again.
       </div>
@@ -50,9 +50,9 @@ export function ReminderLoadError() {
 }
 
 const STATUS_STYLES: Record<ReminderStatusValue, string> = {
-  DRAFTED: "bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-300",
-  WHATSAPP_OPENED: "bg-violet-100 text-violet-800 dark:bg-violet-950/50 dark:text-violet-300",
-  MARKED_SENT: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300",
+  DRAFTED: "bg-sky-100 text-sky-800",
+  WHATSAPP_OPENED: "bg-violet-100 text-violet-800",
+  MARKED_SENT: "bg-emerald-100 text-emerald-800",
 };
 
 const STATUS_LABELS: Record<ReminderStatusValue, string> = {
@@ -71,9 +71,9 @@ export function ReminderStatusBadge({ status }: { status: ReminderStatusValue })
 
 const FOLLOW_UP_STYLES: Record<ReminderFollowUpState, string> = {
   NONE: "text-neutral-500",
-  OVERDUE: "text-amber-700 dark:text-amber-400",
-  DUE_TODAY: "text-amber-700 dark:text-amber-400",
-  UPCOMING: "text-sky-700 dark:text-sky-400",
+  OVERDUE: "text-amber-700",
+  DUE_TODAY: "text-amber-700",
+  UPCOMING: "text-sky-700",
 };
 
 const FOLLOW_UP_LABELS: Record<ReminderFollowUpState, string> = {

@@ -7,13 +7,13 @@ import type { ListAlertsQuery } from "@/lib/validations/alert";
 import { ALERT_SEVERITIES, ALERT_TYPES } from "@/types/alert";
 
 const SELECT_CLASS =
-  "rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 dark:border-neutral-700 dark:bg-neutral-900";
+  "rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10";
 
 export function AlertFilters({ query }: { query: ListAlertsQuery }) {
   return (
     <form
       method="get"
-      className="mt-6 grid gap-3 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800 sm:grid-cols-2 lg:grid-cols-4"
+      className="mt-6 grid gap-3 rounded-lg border border-neutral-200 p-4 sm:grid-cols-2 lg:grid-cols-4"
     >
       <div>
         <label htmlFor="type" className="mb-1 block text-sm font-medium">
@@ -94,7 +94,7 @@ export function AlertFilters({ query }: { query: ListAlertsQuery }) {
       <div className="flex items-end gap-3 sm:col-span-2 lg:col-span-2">
         <button
           type="submit"
-          className="rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 dark:bg-blue-600 dark:text-white"
+          className="rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800"
         >
           Apply filters
         </button>

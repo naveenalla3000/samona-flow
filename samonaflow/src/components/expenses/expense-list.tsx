@@ -12,16 +12,16 @@ export function ExpenseList({
 }) {
   if (expenses.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500 dark:border-neutral-700">
+      <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500">
         {emptyMessage}
       </p>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
+    <div className="overflow-x-auto rounded-lg border border-neutral-200">
       <table className="w-full min-w-[820px] text-left text-sm">
-        <thead className="bg-neutral-50 text-xs uppercase tracking-wide text-neutral-500 dark:bg-neutral-900">
+        <thead className="bg-white text-xs uppercase tracking-wide text-neutral-500">
           <tr>
             <th scope="col" className="px-4 py-3 font-medium">Title</th>
             <th scope="col" className="px-4 py-3 font-medium">Category</th>
@@ -32,7 +32,7 @@ export function ExpenseList({
             <th scope="col" className="px-4 py-3"><span className="sr-only">Details</span></th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+        <tbody className="divide-y divide-neutral-200">
           {expenses.map((expense) => (
             <tr key={expense.id}>
               <td className="px-4 py-3 font-medium">{expense.title}</td>
@@ -46,7 +46,7 @@ export function ExpenseList({
               <td className="px-4 py-3">
                 <Link
                   href={`/dashboard/expenses/${expense.id}`}
-                  className="text-sm text-neutral-600 underline hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
+                  className="text-sm text-neutral-600 underline hover:text-neutral-900"
                 >
                   View
                 </Link>

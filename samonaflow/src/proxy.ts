@@ -1,8 +1,26 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
+import { createServerClient } from "@supabase/ssr";
 import { sanitizeNextPath } from "@/lib/auth/safe-redirect";
+import { prisma } from "@/lib/prisma";
+import { getSupabaseEnv } from "@/lib/supabase/env";
+import { updateSession } from "@/lib/supabase/middleware";
+
+const isProduction = process.env.NODE_ENV === "production";
 
 const AUTH_PATHS = new Set(["/login", "/signup"]);
+const ONBOARDING_PATHS = new Set(["/onboarding"]);
+
+function isPath(pathname: string, exact: string): boolean {
+  return pathname === exact || pathname.startsWith(`${exact}/`);
+}
+
+async function hasBusinessMembership(userId: string): Promise<boolean> {
+  const membership = await prisma.businessMembership.findFirst({
+    where: { userId },
+    select: { id: true },
+  });
+  return Boolean(membership);
+}
 
 /**
  * Next.js 16 convention (formerly `middleware.ts`).
@@ -15,11 +33,9 @@ export async function proxy(request: NextRequest) {
   const { response, user } = await updateSession(request);
 
   const isAuthPage = AUTH_PATHS.has(pathname);
-  const isProtectedPage =
-    pathname === "/dashboard" ||
-    pathname.startsWith("/dashboard/") ||
-    pathname === "/onboarding" ||
-    pathname.startsWith("/onboarding/");
+  const isDashboardPage = isPath(pathname, "/dashboard");
+  const isOnboardingPage = Array.from(ONBOARDING_PATHS).some((path) => isPath(pathname, path));
+  const isProtectedPage = isDashboardPage || isOnboardingPage;
 
   if (isProtectedPage && !user) {
     const loginUrl = request.nextUrl.clone();
@@ -29,9 +45,44 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (isAuthPage && user) {
-    const next = sanitizeNextPath(request.nextUrl.searchParams.get("next"));
-    return NextResponse.redirect(new URL(next, request.url));
+  if (user && (isAuthPage || isDashboardPage || isOnboardingPage)) {
+    const { url, anonKey } = getSupabaseEnv();
+    const supabase = createServerClient(url, anonKey, {
+      cookieOptions: {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: isProduction,
+        path: "/",
+      },
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll() {
+          // Session refresh cookies are already handled by updateSession.
+        },
+      },
+    });
+    const {
+      data: { user: verifiedUser },
+    } = await supabase.auth.getUser();
+    const hasBusiness = verifiedUser ? await hasBusinessMembership(verifiedUser.id) : false;
+
+    if (isDashboardPage && !hasBusiness) {
+      return NextResponse.redirect(new URL("/onboarding", request.url));
+    }
+
+    if (isOnboardingPage && hasBusiness) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+
+    if (isAuthPage) {
+      if (!hasBusiness) {
+        return NextResponse.redirect(new URL("/onboarding", request.url));
+      }
+      const next = sanitizeNextPath(request.nextUrl.searchParams.get("next"));
+      return NextResponse.redirect(new URL(next === "/onboarding" ? "/dashboard" : next, request.url));
+    }
   }
 
   return response;

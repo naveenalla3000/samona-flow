@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { sanitizeNextPath } from "@/lib/auth/safe-redirect";
 import { getCurrentUser } from "@/server/auth/get-current-user";
+import { resolvePostAuthPath } from "@/server/auth/post-auth-redirect";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { SignupForm } from "@/components/auth/signup-form";
 
@@ -18,7 +19,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
   const user = await getCurrentUser();
 
   if (user) {
-    redirect(next);
+    redirect(await resolvePostAuthPath(user, next));
   }
 
   return (
@@ -34,7 +35,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
         Already have an account?{" "}
         <Link
           href={next === "/dashboard" ? "/login" : `/login?next=${encodeURIComponent(next)}`}
-          className="font-medium text-neutral-900 underline underline-offset-4 dark:text-neutral-100"
+          className="font-medium text-neutral-900 underline underline-offset-4"
         >
           Sign in
         </Link>

@@ -48,7 +48,7 @@ export default async function PaymentDetailPage({
         action={
           <Link
             href={`/dashboard/invoices/${payment.invoiceId}`}
-            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:border-neutral-700 dark:hover:bg-neutral-800"
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
           >
             View invoice
           </Link>
@@ -57,12 +57,12 @@ export default async function PaymentDetailPage({
 
       <section aria-labelledby="payment-summary" className="mt-6 grid gap-3 sm:grid-cols-2">
         <h2 id="payment-summary" className="sr-only">Payment summary</h2>
-        <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="rounded-lg border border-neutral-200 p-4">
           <p className="text-xs uppercase tracking-wide text-neutral-500">Amount</p>
           <p className="mt-1 text-xl font-semibold tabular-nums">{payment.currency} {payment.amount}</p>
           <p className="mt-2"><PaymentStatusBadge status={payment.status} /></p>
         </div>
-        <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="rounded-lg border border-neutral-200 p-4">
           <p className="text-xs uppercase tracking-wide text-neutral-500">Payment details</p>
           <dl className="mt-2 space-y-1 text-sm">
             <div className="flex justify-between gap-4"><dt className="text-neutral-500">Date</dt><dd>{payment.paymentDate}</dd></div>
@@ -76,11 +76,11 @@ export default async function PaymentDetailPage({
       {payment.notes ? (
         <section aria-labelledby="payment-notes" className="mt-6">
           <h2 id="payment-notes" className="text-sm font-semibold">Notes</h2>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-neutral-600 dark:text-neutral-400">{payment.notes}</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-neutral-600">{payment.notes}</p>
         </section>
       ) : null}
 
-      <section aria-labelledby="invoice-balance" className="mt-8 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+      <section aria-labelledby="invoice-balance" className="mt-8 rounded-lg border border-neutral-200 p-4">
         <h2 id="invoice-balance" className="text-sm font-semibold">Invoice balance</h2>
         <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
           <div><dt className="text-neutral-500">Total</dt><dd className="tabular-nums">{payment.currency} {payment.invoice.totalAmount}</dd></div>
@@ -90,7 +90,7 @@ export default async function PaymentDetailPage({
       </section>
 
       {payment.reversal ? (
-        <section aria-labelledby="reversal-heading" className="mt-6 rounded-lg border border-neutral-300 p-4 dark:border-neutral-700">
+        <section aria-labelledby="reversal-heading" className="mt-6 rounded-lg border border-neutral-300 p-4">
           <h2 id="reversal-heading" className="text-sm font-semibold">Reversal record</h2>
           <dl className="mt-2 space-y-1 text-sm">
             <div className="flex justify-between gap-4"><dt className="text-neutral-500">Reason</dt><dd>{payment.reversal.reason}</dd></div>

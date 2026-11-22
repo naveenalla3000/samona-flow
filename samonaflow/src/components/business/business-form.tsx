@@ -155,7 +155,7 @@ export function BusinessForm({
               aria-describedby={
                 errorFor("email") ? "email-error" : mode === "update" ? "email-hint" : undefined
               }
-              className={`${FIELD_CLASS} ${mode === "update" ? "cursor-not-allowed bg-slate-50 text-slate-500" : ""}`}
+              className={`${FIELD_CLASS} ${mode === "update" ? "cursor-not-allowed bg-white text-slate-500" : ""}`}
               {...register("email")}
             />
             {mode === "update" ? (

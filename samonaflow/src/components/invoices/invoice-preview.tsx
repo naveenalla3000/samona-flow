@@ -25,10 +25,10 @@ export function InvoicePreview({
         }
       `}</style>
       <article
-        className="invoice-print mx-auto mt-8 max-w-3xl rounded-lg border border-neutral-200 bg-white p-8 text-neutral-900 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100"
+        className="invoice-print mx-auto mt-8 max-w-3xl rounded-lg border border-neutral-200 bg-white p-8 text-neutral-900 shadow-sm"
         aria-label={`Invoice ${invoice.invoiceNumber}`}
       >
-        <header className="flex flex-wrap items-start justify-between gap-6 border-b border-neutral-200 pb-6 dark:border-neutral-800">
+        <header className="flex flex-wrap items-start justify-between gap-6 border-b border-neutral-200 pb-6">
           <div>
             <p className="text-xs uppercase tracking-widest text-neutral-500">Invoice</p>
             <h2 className="mt-1 text-3xl font-semibold">{invoice.invoiceNumber}</h2>
@@ -73,7 +73,7 @@ export function InvoicePreview({
         </section>
 
         <table className="mt-8 w-full text-left text-sm">
-          <thead className="border-b border-neutral-200 text-xs uppercase tracking-wide text-neutral-500 dark:border-neutral-800">
+          <thead className="border-b border-neutral-200 text-xs uppercase tracking-wide text-neutral-500">
             <tr>
               <th scope="col" className="py-2 font-medium">Description</th>
               <th scope="col" className="py-2 text-right font-medium">Qty</th>
@@ -81,7 +81,7 @@ export function InvoicePreview({
               <th scope="col" className="py-2 text-right font-medium">Amount</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
+          <tbody className="divide-y divide-neutral-100">
             {invoice.items.map((item) => (
               <tr key={item.id}>
                 <td className="py-3">{item.description}</td>
@@ -107,7 +107,7 @@ export function InvoicePreview({
               <dt className="text-neutral-500">Tax</dt>
               <dd className="tabular-nums">+{invoice.tax}</dd>
             </div>
-            <div className="flex justify-between border-t border-neutral-200 pt-2 text-base font-semibold dark:border-neutral-800">
+            <div className="flex justify-between border-t border-neutral-200 pt-2 text-base font-semibold">
               <dt>Total ({invoice.currency})</dt>
               <dd className="tabular-nums">{invoice.totalAmount}</dd>
             </div>
@@ -123,13 +123,13 @@ export function InvoicePreview({
         </section>
 
         {invoice.notes ? (
-          <section className="mt-8 border-t border-neutral-200 pt-6 text-sm dark:border-neutral-800">
+          <section className="mt-8 border-t border-neutral-200 pt-6 text-sm">
             <h3 className="text-xs uppercase tracking-wide text-neutral-500">Notes</h3>
             <p className="mt-2 whitespace-pre-wrap">{invoice.notes}</p>
           </section>
         ) : null}
 
-        <footer className="mt-10 border-t border-neutral-200 pt-4 text-xs text-neutral-500 dark:border-neutral-800">
+        <footer className="mt-10 border-t border-neutral-200 pt-4 text-xs text-neutral-500">
           Thank you for your business.
         </footer>
       </article>

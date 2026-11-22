@@ -51,7 +51,7 @@ export default async function ReminderDetailPage({
         action={
           <Link
             href="/dashboard/reminders"
-            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:border-neutral-700 dark:hover:bg-neutral-800"
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
           >
             All reminders
           </Link>
@@ -60,7 +60,7 @@ export default async function ReminderDetailPage({
 
       <section aria-labelledby="reminder-summary" className="mt-6 grid gap-3 sm:grid-cols-2">
         <h2 id="reminder-summary" className="sr-only">Reminder summary</h2>
-        <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="rounded-lg border border-neutral-200 p-4">
           <p className="text-xs uppercase tracking-wide text-neutral-500">Status</p>
           <p className="mt-2"><ReminderStatusBadge status={reminder.status} /></p>
           <p className="mt-2 text-sm">
@@ -70,7 +70,7 @@ export default async function ReminderDetailPage({
             Opening WhatsApp is not delivery. Only you can confirm that a message was sent.
           </p>
         </div>
-        <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="rounded-lg border border-neutral-200 p-4">
           <p className="text-xs uppercase tracking-wide text-neutral-500">Invoice context</p>
           <dl className="mt-2 space-y-1 text-sm">
             <div className="flex justify-between gap-4"><dt className="text-neutral-500">Customer</dt><dd>{reminder.customerName}</dd></div>
@@ -82,7 +82,7 @@ export default async function ReminderDetailPage({
             <div className="flex justify-between gap-4"><dt className="text-neutral-500">Currency</dt><dd>{reminder.currency}</dd></div>
           </dl>
           {reminder.invoiceOverdue ? (
-            <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-400">The invoice is overdue.</p>
+            <p className="mt-2 text-xs font-medium text-amber-700">The invoice is overdue.</p>
           ) : null}
         </div>
       </section>
@@ -92,7 +92,7 @@ export default async function ReminderDetailPage({
           <h2 id="reminder-message" className="text-sm font-semibold">Generated message</h2>
           <CopyReminderButton message={reminder.message} />
         </div>
-        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-sm leading-relaxed dark:border-neutral-800 dark:bg-neutral-900">
+        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-lg border border-neutral-200 bg-white p-4 text-sm leading-relaxed">
 {reminder.message}
         </pre>
       </section>
@@ -105,14 +105,14 @@ export default async function ReminderDetailPage({
         {editable ? (
           <Link
             href={`/dashboard/reminders/${reminder.id}/edit`}
-            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:border-neutral-700 dark:hover:bg-neutral-800"
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
           >
             {canEditMessage(reminder.status) ? "Edit reminder" : "Reschedule follow-up"}
           </Link>
         ) : null}
         <Link
           href={`/dashboard/customers/${reminder.customerId}`}
-          className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:border-neutral-700 dark:hover:bg-neutral-800"
+          className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
         >
           Customer profile
         </Link>

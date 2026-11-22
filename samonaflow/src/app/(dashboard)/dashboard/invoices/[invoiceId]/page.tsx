@@ -71,14 +71,14 @@ export default async function InvoiceDetailPage({
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href={`/dashboard/invoices/${invoice.id}/preview`}
-              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:border-neutral-700 dark:hover:bg-neutral-800"
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
             >
               Preview / print
             </Link>
             {hasBalance && ["SENT", "PARTIALLY_PAID", "OVERDUE"].includes(invoice.status) ? (
               <Link
                 href={`/dashboard/reminders/new?invoiceId=${encodeURIComponent(invoice.id)}`}
-                className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
               >
                 Generate reminder
               </Link>
@@ -86,7 +86,7 @@ export default async function InvoiceDetailPage({
             {invoice.isEditable ? (
               <Link
                 href={`/dashboard/invoices/${invoice.id}/edit`}
-                className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
               >
                 Edit draft
               </Link>
@@ -113,21 +113,21 @@ export default async function InvoiceDetailPage({
         <h2 id="summary-heading" className="sr-only">
           Invoice summary
         </h2>
-        <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="rounded-lg border border-neutral-200 p-4">
           <p className="text-xs uppercase tracking-wide text-neutral-500">Customer</p>
           <p className="mt-1 text-sm font-medium">{invoice.customer.name}</p>
         </div>
-        <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="rounded-lg border border-neutral-200 p-4">
           <p className="text-xs uppercase tracking-wide text-neutral-500">Total</p>
           <p className="mt-1 text-lg font-semibold tabular-nums">
             {invoice.currency} {invoice.totalAmount}
           </p>
         </div>
-        <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="rounded-lg border border-neutral-200 p-4">
           <p className="text-xs uppercase tracking-wide text-neutral-500">Paid</p>
           <p className="mt-1 text-lg font-semibold tabular-nums">{invoice.amountPaid}</p>
         </div>
-        <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="rounded-lg border border-neutral-200 p-4">
           <p className="text-xs uppercase tracking-wide text-neutral-500">Outstanding</p>
           <p className="mt-1 text-lg font-semibold tabular-nums">{invoice.outstandingAmount}</p>
         </div>
@@ -137,9 +137,9 @@ export default async function InvoiceDetailPage({
         <h2 id="items-heading" className="text-lg font-semibold">
           Line items
         </h2>
-        <div className="mt-3 overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
+        <div className="mt-3 overflow-x-auto rounded-lg border border-neutral-200">
           <table className="w-full min-w-[560px] text-left text-sm">
-            <thead className="bg-neutral-50 text-xs uppercase tracking-wide text-neutral-500 dark:bg-neutral-900">
+            <thead className="bg-white text-xs uppercase tracking-wide text-neutral-500">
               <tr>
                 <th scope="col" className="px-4 py-3 font-medium">Description</th>
                 <th scope="col" className="px-4 py-3 text-right font-medium">Qty</th>
@@ -147,7 +147,7 @@ export default async function InvoiceDetailPage({
                 <th scope="col" className="px-4 py-3 text-right font-medium">Line total</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+            <tbody className="divide-y divide-neutral-200">
               {invoice.items.map((item) => (
                 <tr key={item.id}>
                   <td className="px-4 py-3">{item.description}</td>
@@ -172,7 +172,7 @@ export default async function InvoiceDetailPage({
             <dt className="text-neutral-500">Tax</dt>
             <dd className="tabular-nums">+{invoice.tax}</dd>
           </div>
-          <div className="flex justify-between border-t border-neutral-200 pt-2 font-semibold dark:border-neutral-800">
+          <div className="flex justify-between border-t border-neutral-200 pt-2 font-semibold">
             <dt>Total</dt>
             <dd className="tabular-nums">{invoice.totalAmount}</dd>
           </div>
@@ -197,12 +197,12 @@ export default async function InvoiceDetailPage({
             />
           </div>
         ) : (
-          <p role="alert" className="mt-3 text-sm text-red-600 dark:text-red-400">
+          <p role="alert" className="mt-3 text-sm text-red-600">
             Payment history could not be loaded. Please refresh the page.
           </p>
         )}
         {showPaymentForm ? (
-          <div className="mt-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+          <div className="mt-6 rounded-lg border border-neutral-200 p-4">
             <h3 className="text-sm font-semibold">Record a payment</h3>
             <div className="mt-4">
               <PaymentForm
@@ -220,7 +220,7 @@ export default async function InvoiceDetailPage({
       {invoice.notes ? (
         <section aria-labelledby="notes-heading" className="mt-10">
           <h2 id="notes-heading" className="text-lg font-semibold">Notes</h2>
-          <p className="mt-2 whitespace-pre-wrap text-sm text-neutral-600 dark:text-neutral-400">
+          <p className="mt-2 whitespace-pre-wrap text-sm text-neutral-600">
             {invoice.notes}
           </p>
         </section>

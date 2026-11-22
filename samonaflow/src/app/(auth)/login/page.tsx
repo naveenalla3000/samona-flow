@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { sanitizeNextPath } from "@/lib/auth/safe-redirect";
 import { getCurrentUser } from "@/server/auth/get-current-user";
+import { resolvePostAuthPath } from "@/server/auth/post-auth-redirect";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { LoginForm } from "@/components/auth/login-form";
 
@@ -23,7 +24,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const user = await getCurrentUser();
 
   if (user) {
-    redirect(next);
+    redirect(await resolvePostAuthPath(user, next));
   }
 
   const errorKey = typeof params.error === "string" ? params.error : undefined;
@@ -37,14 +38,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <p className="mt-1 text-sm text-neutral-500">Sign in to your samonaFlow account.</p>
 
       {success && (
-        <p role="status" className="mt-5 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+        <p role="status" className="mt-5 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
           {success}
         </p>
       )}
       {notice && (
         <p
           role="alert"
-          className="mt-5 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
+          className="mt-5 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
         >
           {notice}
         </p>
@@ -56,7 +57,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         New here?{" "}
         <Link
           href={next === "/dashboard" ? "/signup" : `/signup?next=${encodeURIComponent(next)}`}
-          className="font-medium text-neutral-900 underline underline-offset-4 dark:text-neutral-100"
+          className="font-medium text-neutral-900 underline underline-offset-4"
         >
           Create an account
         </Link>

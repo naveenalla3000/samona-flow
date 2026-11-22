@@ -16,7 +16,7 @@ export const instant = false;
 
 function DetailRow({ label, value }: { label: string; value: string | null }) {
   return (
-    <div className="border-b border-neutral-200 py-2 dark:border-neutral-800">
+    <div className="border-b border-neutral-200 py-2">
       <dt className="text-xs uppercase tracking-wide text-neutral-500">{label}</dt>
       <dd className="mt-0.5 text-sm whitespace-pre-wrap">{value || "—"}</dd>
     </div>
@@ -62,20 +62,20 @@ export default async function CustomerDetailPage({
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href={`/dashboard/reminders?customerId=${encodeURIComponent(customer.id)}`}
-              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:border-neutral-700 dark:hover:bg-neutral-800"
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
             >
               Reminder history
             </Link>
             <Link
               href={`/dashboard/reminders/new?customerId=${encodeURIComponent(customer.id)}`}
-              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:border-neutral-700 dark:hover:bg-neutral-800"
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
             >
               Generate reminder
             </Link>
             <ArchiveCustomerButton customerId={customer.id} action={archiveCustomerAction} />
             <Link
               href={`/dashboard/customers/${customer.id}/edit`}
-              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:border-neutral-700 dark:hover:bg-neutral-800"
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
             >
               Edit
             </Link>
@@ -84,7 +84,7 @@ export default async function CustomerDetailPage({
       />
 
       {customer.archivedAt ? (
-        <p role="status" className="mt-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+        <p role="status" className="mt-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           This customer was archived on {formatDate(customer.archivedAt)}. Invoice history is still available.
         </p>
       ) : null}
@@ -106,19 +106,19 @@ export default async function CustomerDetailPage({
         <section aria-labelledby="financials-heading">
           <h2 id="financials-heading" className="text-lg font-semibold">Financial summary</h2>
           <dl className="mt-3 grid grid-cols-2 gap-3">
-            <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+            <div className="rounded-lg border border-neutral-200 p-4">
               <dt className="text-xs uppercase tracking-wide text-neutral-500">Total invoiced</dt>
               <dd className="mt-1 text-xl font-semibold">{financials.totalInvoiced}</dd>
             </div>
-            <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+            <div className="rounded-lg border border-neutral-200 p-4">
               <dt className="text-xs uppercase tracking-wide text-neutral-500">Payments received</dt>
               <dd className="mt-1 text-xl font-semibold">{financials.totalPaymentsReceived}</dd>
             </div>
-            <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+            <div className="rounded-lg border border-neutral-200 p-4">
               <dt className="text-xs uppercase tracking-wide text-neutral-500">Outstanding</dt>
               <dd className="mt-1 text-xl font-semibold">{financials.outstandingAmount}</dd>
             </div>
-            <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+            <div className="rounded-lg border border-neutral-200 p-4">
               <dt className="text-xs uppercase tracking-wide text-neutral-500">Invoices / overdue</dt>
               <dd className="mt-1 text-xl font-semibold">
                 {financials.invoiceCount} / {financials.overdueInvoiceCount}
@@ -133,9 +133,9 @@ export default async function CustomerDetailPage({
         {invoices.length === 0 ? (
           <p className="mt-3 text-sm text-neutral-500">No invoices have been issued to this customer yet.</p>
         ) : (
-          <div className="mt-3 overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
+          <div className="mt-3 overflow-x-auto rounded-lg border border-neutral-200">
             <table className="w-full min-w-[600px] text-left text-sm">
-              <thead className="bg-neutral-50 text-xs uppercase tracking-wide text-neutral-500 dark:bg-neutral-900">
+              <thead className="bg-white text-xs uppercase tracking-wide text-neutral-500">
                 <tr>
                   <th scope="col" className="px-4 py-3 font-medium">Invoice</th>
                   <th scope="col" className="px-4 py-3 font-medium">Issued</th>
@@ -145,7 +145,7 @@ export default async function CustomerDetailPage({
                   <th scope="col" className="px-4 py-3 text-right font-medium">Outstanding</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+              <tbody className="divide-y divide-neutral-200">
                 {invoices.map((invoice) => (
                   <tr key={invoice.id}>
                     <td className="px-4 py-3 font-medium">{invoice.invoiceNumber}</td>

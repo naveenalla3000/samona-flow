@@ -22,7 +22,7 @@ export function CopyReminderButton({ message }: { message: string }) {
           setCopied(false);
         }
       }}
-      className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:border-neutral-700 dark:hover:bg-neutral-800"
+      className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
     >
       {copied ? "Copied" : "Copy text"}
     </button>
@@ -47,7 +47,7 @@ export function ReminderActions({ reminder }: { reminder: ReminderRecord }) {
   }
 
   return (
-    <section aria-labelledby="reminder-actions" className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+    <section aria-labelledby="reminder-actions" className="rounded-lg border border-neutral-200 p-4">
       <h2 id="reminder-actions" className="text-sm font-semibold">Share manually</h2>
       <p className="mt-1 text-xs text-neutral-500">
         Copy the text or open WhatsApp with it prefilled. You send the message yourself; the app never claims delivery.
@@ -72,18 +72,18 @@ export function ReminderActions({ reminder }: { reminder: ReminderRecord }) {
       </div>
 
       {!sent ? (
-        <form action={formAction} className="mt-4 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+        <form action={formAction} className="mt-4 border-t border-neutral-200 pt-4">
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md bg-blue-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-800 disabled:opacity-60 dark:bg-blue-600 dark:text-white"
+            className="rounded-md bg-blue-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-800 disabled:opacity-60"
           >
             {pending ? "Saving…" : "Mark as sent"}
           </button>
         </form>
       ) : null}
       {state.status === "error" && state.message ? (
-        <p role="alert" className="mt-2 text-sm text-red-600 dark:text-red-400">{state.message}</p>
+        <p role="alert" className="mt-2 text-sm text-red-600">{state.message}</p>
       ) : null}
     </section>
   );

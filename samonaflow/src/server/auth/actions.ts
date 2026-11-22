@@ -13,6 +13,7 @@ import {
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { mapAuthError } from "./auth-errors";
 import { toVerifiedIdentity } from "./identity";
+import { resolvePostAuthPath } from "./post-auth-redirect";
 import { syncUserProfile } from "./profile-sync";
 import type { AuthFormState } from "./auth-types";
 
@@ -71,9 +72,10 @@ export async function signInAction(
   const identity = toVerifiedIdentity(user);
   if (identity) {
     await syncUserProfile(identity);
+    redirect(await resolvePostAuthPath(identity, getString(formData, "next")));
   }
 
-  redirect(sanitizeNextPath(getString(formData, "next")));
+  redirect("/onboarding");
 }
 
 export async function signUpAction(
@@ -121,6 +123,7 @@ export async function signUpAction(
   const identity = toVerifiedIdentity(data.user);
   if (identity) {
     await syncUserProfile(identity);
+    redirect(await resolvePostAuthPath(identity, next));
   }
 
   redirect(next);
