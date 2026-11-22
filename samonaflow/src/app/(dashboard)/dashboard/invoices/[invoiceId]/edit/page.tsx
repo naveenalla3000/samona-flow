@@ -65,7 +65,7 @@ export default async function EditInvoicePage({
   };
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-12">
+    <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
       <InvoicesHeader title="Edit invoice" subtitle={invoice.invoiceNumber} />
       <InvoiceForm
         customers={customers.items.map((customer) => ({

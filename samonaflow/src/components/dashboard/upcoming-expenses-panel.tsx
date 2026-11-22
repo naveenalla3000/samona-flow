@@ -45,7 +45,7 @@ export function UpcomingExpensesPanel({
       ) : (
         <>
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
+            <table className="w-full min-w-[720px] text-left text-sm">
               <caption className="sr-only">
                 Unpaid expenses ordered overdue first, then by due date.
               </caption>

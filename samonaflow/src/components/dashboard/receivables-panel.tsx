@@ -56,7 +56,7 @@ export function ReceivablesPanel({
       ) : (
         <>
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
+            <table className="w-full min-w-[920px] text-left text-sm">
               <caption className="sr-only">
                 Open receivables, overdue first, with amounts, due dates and reminder actions.
               </caption>

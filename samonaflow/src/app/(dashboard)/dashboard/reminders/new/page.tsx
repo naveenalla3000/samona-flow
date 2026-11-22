@@ -71,7 +71,7 @@ export default async function NewReminderPage({ searchParams }: { searchParams: 
   });
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 py-12">
+    <main className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-10">
       <RemindersHeader
         title="Generate reminder"
         subtitle="Choose an issued invoice. The message is built from its verified amount and due date."

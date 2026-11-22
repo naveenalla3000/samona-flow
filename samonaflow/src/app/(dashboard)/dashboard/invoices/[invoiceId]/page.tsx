@@ -63,12 +63,12 @@ export default async function InvoiceDetailPage({
   const showPaymentForm = canRecordPayment(invoice.status) && hasBalance;
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-12">
+    <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
       <InvoicesHeader
         title={invoice.invoiceNumber}
         subtitle={`Issued ${invoice.issueDate} · Due ${invoice.dueDate}`}
         action={
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <Link
               href={`/dashboard/invoices/${invoice.id}/preview`}
               className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"

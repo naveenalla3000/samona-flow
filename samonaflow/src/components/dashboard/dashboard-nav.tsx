@@ -70,16 +70,16 @@ export function DashboardNav({ businessName = "SamonaFlow" }: { businessName?: s
       </aside>
 
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/80 lg:hidden">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand-700 text-sm font-bold text-white">S</span>
-          <span className="text-sm font-semibold tracking-tight text-slate-900">SamonaFlow</span>
+        <Link href="/dashboard" className="flex min-w-0 items-center gap-2">
+          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-700 text-sm font-bold text-white">{initial}</span>
+          <span className="truncate text-sm font-semibold tracking-tight text-slate-900">{businessName}</span>
         </Link>
         <button
           type="button"
           aria-label="Open navigation menu"
           aria-expanded={open}
           onClick={() => setOpen(true)}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-100"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-900"
         >
           <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
@@ -100,7 +100,7 @@ export function DashboardNav({ businessName = "SamonaFlow" }: { businessName?: s
                 type="button"
                 aria-label="Close navigation menu"
                 onClick={() => setOpen(false)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-900"
               >
                 <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />

@@ -69,7 +69,7 @@ export function CustomerList({ customers }: { customers: CustomerListItem[] }) {
               </td>
               <td className="px-4 py-3 text-neutral-500">{formatDate(customer.createdAt)}</td>
               <td className="px-4 py-3">
-                <div className="flex justify-end gap-3">
+                <div className="flex flex-wrap justify-end gap-2 sm:gap-3">
                   <Link href={`/dashboard/customers/${customer.id}`} className="text-sm hover:underline">
                     View
                   </Link>

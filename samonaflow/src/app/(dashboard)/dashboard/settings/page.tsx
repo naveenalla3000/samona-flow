@@ -39,8 +39,8 @@ export default async function BusinessSettingsPage() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-12">
-      <header className="flex flex-wrap items-start justify-between gap-4">
+    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">
             Business settings
@@ -60,7 +60,7 @@ export default async function BusinessSettingsPage() {
             aria-labelledby="account-heading"
             className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
           >
-            <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h2 id="account-heading" className="text-base font-semibold text-slate-900">
                   Account

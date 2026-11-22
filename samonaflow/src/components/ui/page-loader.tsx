@@ -15,7 +15,7 @@ export function PageLoader({
       aria-live="polite"
       aria-busy="true"
       className={`flex flex-col items-center justify-center gap-3 bg-white text-slate-600 ${
-        fullScreen ? "min-h-screen px-6 py-12" : "px-6 py-16"
+        fullScreen ? "min-h-screen px-4 py-10 sm:px-6 sm:py-12" : "px-4 py-12 sm:px-6 sm:py-16"
       } ${className}`.trim()}
     >
       <span

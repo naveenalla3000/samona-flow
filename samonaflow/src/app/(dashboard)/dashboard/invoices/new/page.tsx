@@ -45,7 +45,7 @@ export default async function NewInvoicePage() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-12">
+    <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
       <InvoicesHeader
         title="Create invoice"
         subtitle="Totals are calculated on the server when you save."

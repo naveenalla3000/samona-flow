@@ -55,7 +55,7 @@ export function BusinessOnboardingForm({ defaultEmail }: Props) {
         </div>
       ) : null}
 
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Business name" name="name" required error={state.fieldErrors?.name} />
         <Field label="Owner name" name="ownerName" required error={state.fieldErrors?.ownerName} />
         <Field
@@ -88,7 +88,7 @@ export function BusinessOnboardingForm({ defaultEmail }: Props) {
         <Field
           label="Business address (optional)"
           name="address"
-          className="md:col-span-2"
+          className="sm:col-span-2"
           error={state.fieldErrors?.address}
         />
         <SelectField
@@ -112,7 +112,7 @@ export function BusinessOnboardingForm({ defaultEmail }: Props) {
           required
           defaultValue="0.00"
           inputMode="decimal"
-          className="md:col-span-2"
+          className="sm:col-span-2"
           error={state.fieldErrors?.openingBalance}
         />
       </div>

@@ -46,7 +46,7 @@ export default async function EditReminderPage({
   const updateAction = updateReminderAction.bind(null, reminder.id);
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 py-12">
+    <main className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-10">
       <RemindersHeader
         title={allowEditMessage ? "Edit reminder" : "Reschedule follow-up"}
         subtitle={`${reminder.invoiceNumber} · ${reminder.customerName}`}

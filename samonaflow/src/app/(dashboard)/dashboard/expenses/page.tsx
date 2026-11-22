@@ -51,7 +51,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-12">
+    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       <ExpensesHeader
         title="Expenses"
         subtitle="Business expenses and future commitments, including upcoming and overdue items."

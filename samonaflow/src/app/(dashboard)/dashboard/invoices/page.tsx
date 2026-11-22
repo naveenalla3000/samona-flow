@@ -59,7 +59,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-12">
+    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       <InvoicesHeader
         title="Invoices"
         subtitle="Create, track and review invoices for your business."
