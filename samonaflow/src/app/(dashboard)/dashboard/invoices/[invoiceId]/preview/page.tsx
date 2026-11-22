@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { InvoicePreview } from "@/components/invoices/invoice-preview";
 import { PrintButton } from "@/components/invoices/print-button";
@@ -19,6 +20,7 @@ export default async function InvoicePreviewPage({
 }: {
   params: Promise<{ invoiceId: string }>;
 }) {
+  await connection();
   const user = await requireUser();
   const business = await resolveCurrentBusiness(user);
   if (!business.ok) return <NoBusinessState />;

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { CancelExpenseButton, MarkPaidForm } from "@/components/expenses/expense-actions";
 import {
@@ -18,11 +19,13 @@ export const metadata = { title: "Expense" };
 
 export const instant = false;
 
+
 export default async function ExpenseDetailPage({
   params,
 }: {
   params: Promise<{ expenseId: string }>;
 }) {
+  await connection();
   const user = await requireUser();
   const business = await resolveCurrentBusiness(user);
   if (!business.ok) return <NoBusinessState />;

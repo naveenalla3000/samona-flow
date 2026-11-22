@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { ArchiveCustomerButton } from "@/components/customers/archive-customer-button";
 import { CustomersHeader, NoBusinessState } from "@/components/customers/customer-layout";
@@ -27,11 +28,13 @@ function formatDate(value: string | null): string {
   return new Date(value).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 }
 
+
 export default async function CustomerDetailPage({
   params,
 }: {
   params: Promise<{ customerId: string }>;
 }) {
+  await connection();
   const user = await requireUser();
   const business = await resolveCurrentBusiness(user);
   if (!business.ok) return <NoBusinessState />;

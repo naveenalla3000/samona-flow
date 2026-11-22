@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import {
   ReminderEditForm,
 } from "@/components/reminders/reminder-form";
@@ -23,6 +24,7 @@ export default async function EditReminderPage({
 }: {
   params: Promise<{ reminderId: string }>;
 }) {
+  await connection();
   const user = await requireUser();
   const business = await resolveCurrentBusiness(user);
   if (!business.ok) return <NoBusinessState />;

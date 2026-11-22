@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { CustomerForm } from "@/components/customers/customer-form";
 import { CustomersHeader, NoBusinessState } from "@/components/customers/customer-layout";
 import { updateCustomerAction } from "@/server/actions/customer-actions";
@@ -17,6 +18,7 @@ export default async function EditCustomerPage({
 }: {
   params: Promise<{ customerId: string }>;
 }) {
+  await connection();
   const user = await requireUser();
   const business = await resolveCurrentBusiness(user);
   if (!business.ok) return <NoBusinessState />;

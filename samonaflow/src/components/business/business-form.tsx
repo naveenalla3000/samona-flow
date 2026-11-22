@@ -150,11 +150,19 @@ export function BusinessForm({
               id="email"
               type="email"
               autoComplete="email"
+              readOnly={mode === "update"}
               aria-invalid={Boolean(errorFor("email"))}
-              aria-describedby={errorFor("email") ? "email-error" : undefined}
-              className={FIELD_CLASS}
+              aria-describedby={
+                errorFor("email") ? "email-error" : mode === "update" ? "email-hint" : undefined
+              }
+              className={`${FIELD_CLASS} ${mode === "update" ? "cursor-not-allowed bg-slate-50 text-slate-500" : ""}`}
               {...register("email")}
             />
+            {mode === "update" ? (
+              <p id="email-hint" className={HINT_CLASS}>
+                Email cannot be changed from settings.
+              </p>
+            ) : null}
             <FieldError id="email-error" message={errorFor("email")} />
           </div>
 

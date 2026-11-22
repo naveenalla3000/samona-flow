@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { InvoiceActionButtons } from "@/components/invoices/invoice-actions";
 import { InvoicesHeader, NoBusinessState, StatusBadge } from "@/components/invoices/invoice-layout";
@@ -24,11 +25,13 @@ export const instant = false;
 
 const HISTORY_QUERY = listPaymentsQuerySchema.parse({ pageSize: 5 });
 
+
 export default async function InvoiceDetailPage({
   params,
 }: {
   params: Promise<{ invoiceId: string }>;
 }) {
+  await connection();
   const user = await requireUser();
   const business = await resolveCurrentBusiness(user);
   if (!business.ok) return <NoBusinessState />;

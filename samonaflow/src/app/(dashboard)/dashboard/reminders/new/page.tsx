@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import {
   ReminderForm,
   type InvoiceOption,
@@ -25,7 +26,9 @@ const REMINDABLE = ["SENT", "PARTIALLY_PAID", "OVERDUE"];
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
+
 export default async function NewReminderPage({ searchParams }: { searchParams: SearchParams }) {
+  await connection();
   const user = await requireUser();
   const business = await resolveCurrentBusiness(user);
   if (!business.ok) return <NoBusinessState />;

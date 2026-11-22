@@ -12,7 +12,7 @@ export function InvoiceList({ invoices }: { invoices: InvoiceListItem[] }) {
         </p>
         <Link
           href="/dashboard/invoices/new"
-          className="mt-4 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900"
+          className="mt-4 inline-block rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 dark:bg-blue-600 dark:text-white"
         >
           Create invoice
         </Link>

@@ -32,9 +32,9 @@ function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () 
               href={item.href}
               aria-current={active ? "page" : undefined}
               onClick={onNavigate}
-              className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 ${
+              className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-900 ${
                 active
-                  ? "bg-brand-50 text-brand-800 dark:bg-brand-900/40 dark:text-brand-100"
+                  ? "bg-blue-900 text-white shadow-sm dark:bg-blue-600 dark:text-white"
                   : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-50"
               }`}
             >
@@ -47,25 +47,25 @@ function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () 
   );
 }
 
-export function DashboardNav() {
+export function DashboardNav({ businessName = "SamonaFlow" }: { businessName?: string }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const initial = businessName.trim().charAt(0).toUpperCase() || "S";
 
   return (
     <>
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-slate-200/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85 dark:border-slate-800 dark:bg-slate-950/95 lg:flex lg:flex-col">
         <div className="flex h-16 items-center border-b border-slate-200/80 px-5 dark:border-slate-800">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand-700 text-sm font-bold text-white">S</span>
-            <span className="text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-50">SamonaFlow</span>
+            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-700 text-sm font-bold text-white">{initial}</span>
+            <span className="truncate text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-50">{businessName}</span>
           </Link>
         </div>
         <nav aria-label="Primary" className="flex-1 overflow-y-auto px-3 py-4">
-          <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Workspace</p>
           <NavLinks pathname={pathname} />
         </nav>
         <div className="border-t border-slate-200/80 px-5 py-4 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
-          Business cash-flow workspace
+          samonaFlow workspace
         </div>
       </aside>
 
@@ -93,8 +93,8 @@ export function DashboardNav() {
           <aside className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
             <div className="flex h-16 items-center justify-between border-b border-slate-200/80 px-5 dark:border-slate-800">
               <Link href="/dashboard" onClick={() => setOpen(false)} className="flex items-center gap-2">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand-700 text-sm font-bold text-white">S</span>
-                <span className="text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-50">SamonaFlow</span>
+                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-700 text-sm font-bold text-white">{initial}</span>
+                <span className="truncate text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-50">{businessName}</span>
               </Link>
               <button
                 type="button"
@@ -108,7 +108,6 @@ export function DashboardNav() {
               </button>
             </div>
             <nav aria-label="Primary mobile" className="flex-1 overflow-y-auto px-3 py-4">
-              <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Workspace</p>
               <NavLinks pathname={pathname} onNavigate={() => setOpen(false)} />
             </nav>
           </aside>
