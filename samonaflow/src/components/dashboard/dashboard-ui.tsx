@@ -3,11 +3,12 @@ import type { ReactNode } from "react";
 import { formatMoney, parseSignedMoney } from "@/lib/invoice-math";
 import type { DashboardPeriod } from "@/types/dashboard";
 
-export type Tone = "neutral" | "primary" | "positive" | "warning" | "negative";
+export type Tone = "neutral" | "primary" | "positive" | "warning" | "negative" | "brand";
 
 const TONE_TEXT: Record<Tone, string> = {
   neutral: "text-slate-900",
   primary: "text-blue-900",
+  brand: "text-blue-900",
   positive: "text-emerald-700",
   warning: "text-amber-700",
   negative: "text-red-700",
@@ -16,6 +17,7 @@ const TONE_TEXT: Record<Tone, string> = {
 const TONE_DOT: Record<Tone, string> = {
   neutral: "bg-slate-400",
   primary: "bg-blue-700",
+  brand: "bg-blue-700",
   positive: "bg-emerald-500",
   warning: "bg-amber-500",
   negative: "bg-red-500",
@@ -230,5 +232,26 @@ export function QuickLink({ href, children }: { href: string; children: ReactNod
     >
       {children}
     </Link>
+  );
+}
+
+export function formatDashboardMoney(minorOrMajor: bigint, currency: string): string {
+  return `${currency} ${formatMoney(minorOrMajor)}`;
+}
+
+const STATUS_TONES: Record<Tone, string> = {
+  neutral: "bg-slate-100 text-slate-700",
+  primary: "bg-blue-100 text-blue-800",
+  brand: "bg-blue-100 text-blue-800",
+  positive: "bg-emerald-100 text-emerald-800",
+  warning: "bg-amber-100 text-amber-800",
+  negative: "bg-red-100 text-red-800",
+};
+
+export function StatusBadge({ tone = "neutral", children }: { tone?: Tone; children: ReactNode }) {
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_TONES[tone]}`}>
+      {children}
+    </span>
   );
 }

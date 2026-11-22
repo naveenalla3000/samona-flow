@@ -9,7 +9,7 @@ export const instant = false;
 export default async function OnboardingPage() {
   await connection();
   const user = await requireUser();
-  const memberships = await businessService.listMemberships(user);
+  const memberships = await businessService.list(user);
 
   if (memberships.length === 1) {
     redirect("/dashboard");
