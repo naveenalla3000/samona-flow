@@ -9,6 +9,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   await connection();
   const user = await getCurrentUser();
   let businessName = "SamonaFlow";
+  let currency = "USD";
 
   if (user) {
     const current = await resolveCurrentBusiness(user);
@@ -16,15 +17,16 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       try {
         const business = await businessService.get(user, current.businessId);
         businessName = business.name;
+        currency = business.currency;
       } catch {
-        // Keep fallback label if business lookup fails.
+        // Keep fallback labels if business lookup fails.
       }
     }
   }
 
   return (
-    <div className="min-h-full bg-white text-slate-900">
-      <DashboardNav businessName={businessName} />
+    <div className="min-h-full bg-zinc-100 text-zinc-900">
+      <DashboardNav businessName={businessName} currency={currency} />
       <div className="min-w-0 lg:pl-64">{children}</div>
     </div>
   );

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Plus, Receipt } from "lucide-react";
 import { ExpenseStatusBadge } from "@/components/expenses/expense-layout";
 import { EXPENSE_CATEGORY_LABELS } from "@/lib/expense-status";
 import type { DashboardUpcomingExpense } from "@/types/dashboard";
@@ -10,8 +11,8 @@ import {
   SectionError,
 } from "./dashboard-ui";
 
-const ACTION_LINK =
-  "rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-800";
+const PRIMARY_LINK =
+  "inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-1.5 text-[11px] font-medium text-white shadow-sm transition-colors hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900";
 
 export function UpcomingExpensesPanel({
   rows,
@@ -27,7 +28,15 @@ export function UpcomingExpensesPanel({
       id="upcoming-expenses"
       title="Upcoming expenses"
       description="Unpaid expenses, overdue first. Paid and cancelled expenses are excluded."
-      action={<InlineLink href="/dashboard/expenses">All expenses</InlineLink>}
+      action={
+        <div className="flex flex-wrap items-center gap-2">
+          <InlineLink href="/dashboard/expenses">All expenses</InlineLink>
+          <Link href="/dashboard/expenses/new" className={PRIMARY_LINK}>
+            <Plus className="size-3" aria-hidden="true" />
+            New expense
+          </Link>
+        </div>
+      }
       bodyClassName="p-0"
     >
       {error ? (
@@ -44,69 +53,75 @@ export function UpcomingExpensesPanel({
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left text-sm">
-              <caption className="sr-only">
-                Unpaid expenses ordered overdue first, then by due date.
-              </caption>
-              <thead className="border-b border-slate-200 bg-white text-xs uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th scope="col" className="px-4 py-2.5 font-medium">Description</th>
-                  <th scope="col" className="px-4 py-2.5 font-medium">Category</th>
-                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Amount</th>
-                  <th scope="col" className="px-4 py-2.5 font-medium">Due</th>
-                  <th scope="col" className="px-4 py-2.5 font-medium">Status</th>
-                  <th scope="col" className="px-4 py-2.5 font-medium">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {rows.map((row) => (
-                  <tr key={row.id} className={row.isOverdue ? "bg-red-50/60" : ""}>
-                    <td className="max-w-[14rem] px-4 py-3">
-                      <Link
-                        href={`/dashboard/expenses/${row.id}`}
-                        className="block truncate font-medium text-slate-900 hover:underline"
-                      >
-                        {row.title}
-                      </Link>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-600">
-                      {EXPENSE_CATEGORY_LABELS[row.category]}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums text-slate-900">
-                      {formatMajor(row.amount, row.currency)}
-                    </td>
-                    <td
-                      className={`whitespace-nowrap px-4 py-3 tabular-nums ${
-                        row.isOverdue ? "font-semibold text-red-700" : "text-slate-700"
-                      }`}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 px-4 py-2.5">
+            <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100 px-2 py-1 font-medium text-zinc-700">
+                <span className="size-1.5 rounded-full bg-amber-500" aria-hidden="true" />
+                Due soon
+              </span>
+              <span>
+                {rows.length} unpaid expense{rows.length === 1 ? "" : "s"}
+                <span className="hidden sm:inline"> · Amounts in {currency}</span>
+              </span>
+            </div>
+            <InlineLink href="/dashboard/expenses?status=UPCOMING">View all unpaid</InlineLink>
+          </div>
+
+          <ul aria-label="Unpaid expenses, overdue first" className="divide-y divide-zinc-100">
+            {rows.map((row) => (
+              <li
+                key={row.id}
+                className={`flex flex-wrap items-center gap-3 px-4 py-3 transition-colors ${
+                  row.isOverdue ? "bg-rose-50/50 hover:bg-rose-50" : "hover:bg-zinc-50/70"
+                }`}
+              >
+                <span
+                  className={`grid size-8 shrink-0 place-items-center rounded-lg ${
+                    row.isOverdue
+                      ? "bg-rose-100 text-rose-600"
+                      : "bg-zinc-100 text-zinc-500"
+                  }`}
+                  aria-hidden="true"
+                >
+                  <Receipt className="size-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <Link
+                    href={`/dashboard/expenses/${row.id}`}
+                    className="block truncate text-sm font-medium text-zinc-900 hover:underline"
+                  >
+                    {row.title}
+                  </Link>
+                  <p className="mt-0.5 truncate text-[11px] text-zinc-500">
+                    {EXPENSE_CATEGORY_LABELS[row.category]} · Due{" "}
+                    <span
+                      className={
+                        row.isOverdue ? "font-semibold text-rose-600" : "tabular-nums text-zinc-600"
+                      }
                     >
                       {row.dueDate}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <ExpenseStatusBadge status={row.displayStatus} />
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right">
-                      <Link href={`/dashboard/expenses/${row.id}`} className={ACTION_LINK}>
-                        {row.displayStatus === "OVERDUE" ? "Resolve" : "Open"}
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3">
-            <p className="text-xs text-slate-500">
-              {rows.length} unpaid expense{rows.length === 1 ? "" : "s"} on this page.
+                    </span>
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <p className="text-sm font-semibold tabular-nums text-zinc-900">
+                    {formatMajor(row.amount, row.currency)}
+                  </p>
+                  <ExpenseStatusBadge status={row.displayStatus} />
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 px-4 py-3">
+            <p className="text-[11px] text-zinc-500">
+              {rows.length} unpaid expense{rows.length === 1 ? "" : "s"} on this page. Overdue items
+              are highlighted first.
             </p>
-            <InlineLink href="/dashboard/expenses?status=UPCOMING">View all unpaid</InlineLink>
+            <InlineLink href="/dashboard/expenses">Manage expenses</InlineLink>
           </div>
         </>
       )}
-      <span className="sr-only">Amounts are shown in {currency}.</span>
     </DashboardSection>
   );
 }
