@@ -12,10 +12,7 @@ export function ForecastHeader({ horizon }: { horizon: ForecastHorizon }) {
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <Link href="/dashboard" className="text-sm text-neutral-500 hover:underline">
-          ← Dashboard
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold">Cash flow forecast</h1>
+        <h1 className="text-2xl font-semibold">Cash flow forecast</h1>
         <p className="mt-1 max-w-2xl text-sm text-neutral-500">
           A deterministic estimate based on outstanding invoices, recorded payments and unpaid
           expenses. It is not a guarantee that a customer will pay on a specific date.
@@ -188,6 +185,7 @@ export function ForecastNoBusinessState() {
         <p className="mt-2 text-sm text-neutral-500">
           Create a business and record invoices or expenses before forecasting.
         </p>
+        <Link href="/onboarding" className="mt-4 inline-flex rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900">Set up business</Link>
       </div>
     </main>
   );

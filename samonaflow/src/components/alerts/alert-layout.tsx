@@ -14,10 +14,7 @@ export function AlertsHeader({
   return (
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div>
-        <Link href="/dashboard" className="text-sm text-neutral-500 hover:underline">
-          ← Dashboard
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold">{title}</h1>
+        <h1 className="text-2xl font-semibold">{title}</h1>
         <p className="mt-1 text-sm text-neutral-500">{subtitle}</p>
       </div>
       {action}
@@ -34,6 +31,7 @@ export function NoBusinessState() {
         <p className="mt-2 text-sm text-neutral-500">
           Create a business before evaluating alerts.
         </p>
+        <Link href="/onboarding" className="mt-4 inline-flex rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900">Set up business</Link>
       </div>
     </main>
   );

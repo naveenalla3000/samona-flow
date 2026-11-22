@@ -229,7 +229,7 @@ export function ForecastSimulator({
     const id =
       typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
         ? crypto.randomUUID()
-        : `adjustment-${Date.now()}-${adjustments.length}`;
+        : `adjustment-${adjustments.length}-${Math.random().toString(36).slice(2, 10)}`;
 
     let adjustment: ForecastAdjustment;
     switch (type) {

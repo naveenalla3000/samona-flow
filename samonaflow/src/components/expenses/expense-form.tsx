@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import { useForm } from "react-hook-form";
 import { EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABELS } from "@/lib/expense-status";
 import { createExpenseSchema } from "@/lib/validations/expense";
@@ -52,7 +52,9 @@ export function ExpenseForm({
     for (const [key, value] of Object.entries(values)) {
       formData.set(key, value ?? "");
     }
-    formAction(formData);
+    startTransition(() => {
+      formAction(formData);
+    });
   });
 
   return (
