@@ -38,19 +38,19 @@ export function ForecastSummary({ forecast }: { forecast: ForecastResult }) {
       {becomesNegative && shortageDate ? (
         <div
           role="alert"
-          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
         >
           <strong className="font-semibold">Potential cash shortage.</strong> The projected balance
           may fall below zero on <span className="tabular-nums">{shortageDate}</span>.
         </div>
       ) : (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           No negative projected balance in this horizon.
         </div>
       )}
 
       {isPositive(overdue.incoming) ? (
-        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           You have <Money currency={currency} value={overdue.incoming} /> in overdue customer
           payments ({overdue.incomingCount} invoice{overdue.incomingCount === 1 ? "" : "s"}),
           projected on the first forecast day.
@@ -58,13 +58,13 @@ export function ForecastSummary({ forecast }: { forecast: ForecastResult }) {
       ) : null}
 
       {expensesExceedReceipts ? (
-        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           Expected expenses exceed expected receipts during this horizon.
         </div>
       ) : null}
 
       {excludedInvoices.count > 0 ? (
-        <div className="rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-300">
+        <div className="rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
           {excludedInvoices.count} outstanding invoice
           {excludedInvoices.count === 1 ? "" : "s"} in{" "}
           {excludedInvoices.currencies.join(", ")} were excluded so currencies are never mixed.

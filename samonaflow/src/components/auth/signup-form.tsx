@@ -9,7 +9,7 @@ import { initialAuthFormState } from "@/server/auth/auth-types";
 import { PasswordInput } from "./password-input";
 
 const FIELD_CLASS =
-  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 pr-11 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100";
+  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 pr-11 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 disabled:opacity-60";
 
 export function SignupForm({ next }: { next: string }) {
   const [state, formAction, pending] = useActionState(signUpAction, initialAuthFormState);
@@ -45,7 +45,7 @@ export function SignupForm({ next }: { next: string }) {
       {state.status === "error" && state.message && (
         <p
           role="alert"
-          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
         >
           {state.message}
         </p>
@@ -54,7 +54,7 @@ export function SignupForm({ next }: { next: string }) {
       {state.status === "needs-verification" && state.message && (
         <p
           role="status"
-          className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
+          className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
         >
           {state.message}
         </p>
@@ -71,11 +71,11 @@ export function SignupForm({ next }: { next: string }) {
           placeholder="you@example.com"
           aria-invalid={Boolean(emailError)}
           aria-describedby={emailError ? "email-error" : undefined}
-          className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+          className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 disabled:opacity-60"
           {...register("email")}
         />
         {emailError && (
-          <p id="email-error" role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">
+          <p id="email-error" role="alert" className="mt-1 text-xs text-red-600">
             {emailError}
           </p>
         )}
@@ -98,7 +98,7 @@ export function SignupForm({ next }: { next: string }) {
           <p
             id="password-error"
             role="alert"
-            className="mt-1 text-xs text-red-600 dark:text-red-400"
+            className="mt-1 text-xs text-red-600"
           >
             {passwordError}
           </p>
@@ -126,7 +126,7 @@ export function SignupForm({ next }: { next: string }) {
           <p
             id="confirm-error"
             role="alert"
-            className="mt-1 text-xs text-red-600 dark:text-red-400"
+            className="mt-1 text-xs text-red-600"
           >
             {confirmError}
           </p>
@@ -136,7 +136,7 @@ export function SignupForm({ next }: { next: string }) {
       <button
         type="submit"
         disabled={pending || state.status === "needs-verification"}
-        className="w-full rounded-md bg-blue-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-900 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-blue-600 dark:text-white dark:hover:bg-white"
+        className="w-full rounded-md bg-blue-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-900 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {pending ? "Creating account…" : "Create account"}
       </button>

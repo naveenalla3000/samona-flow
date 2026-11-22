@@ -51,7 +51,7 @@ export default async function NewInvoicePage() {
         subtitle="Totals are calculated on the server when you save."
       />
       {customers.items.length === 0 ? (
-        <div role="status" className="mt-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+        <div role="status" className="mt-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           Add a customer before creating an invoice.{" "}
           <Link href="/dashboard/customers/new" className="font-medium underline">
             Add customer

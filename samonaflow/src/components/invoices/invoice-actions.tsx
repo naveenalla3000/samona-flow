@@ -29,7 +29,7 @@ export function InvoiceActionButtons({
           <input type="hidden" name="invoiceId" value={invoiceId} />
           <button
             type="submit"
-            className="rounded-md bg-blue-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-900 dark:bg-blue-600 dark:text-white"
+            className="rounded-md bg-blue-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-900"
           >
             Mark as sent
           </button>
@@ -47,7 +47,7 @@ export function InvoiceActionButtons({
           <input type="hidden" name="invoiceId" value={invoiceId} />
           <button
             type="submit"
-            className="rounded-md border border-amber-300 px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950/40"
+            className="rounded-md border border-amber-300 px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
           >
             Void invoice
           </button>

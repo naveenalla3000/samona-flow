@@ -77,7 +77,7 @@ export default async function NewReminderPage({ searchParams }: { searchParams: 
         subtitle="Choose an issued invoice. The message is built from its verified amount and due date."
       />
       {options.length === 0 ? (
-        <div role="status" className="mt-6 rounded-lg border border-dashed border-neutral-300 p-10 text-center dark:border-neutral-700">
+        <div role="status" className="mt-6 rounded-lg border border-dashed border-neutral-300 p-10 text-center">
           <h2 className="text-lg font-medium">No invoices need a reminder</h2>
           <p className="mt-2 text-sm text-neutral-500">
             Issue an invoice with an outstanding balance first.

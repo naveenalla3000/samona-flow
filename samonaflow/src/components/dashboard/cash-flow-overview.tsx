@@ -13,13 +13,13 @@ function money(value: string, currency: string): string {
 function ForecastStat({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "positive" | "negative" }) {
   const color =
     tone === "positive"
-      ? "text-positive dark:text-emerald-300"
+      ? "text-positive"
       : tone === "negative"
-        ? "text-negative dark:text-red-300"
-        : "text-slate-900 dark:text-slate-50";
+        ? "text-negative"
+        : "text-slate-900";
   return (
-    <div className="rounded-xl bg-slate-50 px-3 py-3 dark:bg-slate-800/60">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
+    <div className="rounded-xl bg-white px-3 py-3">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{label}</p>
       <p className={`mt-1 text-sm font-semibold tabular-nums sm:text-base ${color}`}>{value}</p>
     </div>
   );
@@ -40,14 +40,14 @@ export function CashFlowOverview({
   const labels = cashFlow.series.map((day) => day.date.slice(5));
 
   return (
-    <section className="rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/40 dark:border-slate-800 dark:bg-slate-900">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+    <section className="rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/40">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-slate-900 sm:text-base dark:text-slate-100">Cash flow forecast</h2>
+            <h2 className="text-sm font-semibold text-slate-900 sm:text-base">Cash flow forecast</h2>
             <StatusBadge tone="brand">{cashFlow.horizonDays} days</StatusBadge>
           </div>
-          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+          <p className="mt-0.5 text-xs text-slate-500">
             {cashFlow.startDate} → {cashFlow.endDate} · business-local dates
           </p>
         </div>
@@ -58,7 +58,7 @@ export function CashFlowOverview({
         {cashFlow.becomesNegative ? (
           <div
             role="status"
-            className="flex flex-wrap items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-100"
+            className="flex flex-wrap items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900"
           >
             <StatusBadge tone="negative">Shortage projected</StatusBadge>
             <span>
@@ -76,7 +76,7 @@ export function CashFlowOverview({
           <ForecastStat label="Lowest balance on" value={cashFlow.lowestProjectedDate} />
         </div>
 
-        <div className="rounded-xl border border-slate-100 p-2 dark:border-slate-800">
+        <div className="rounded-xl border border-slate-100 p-2">
           <ForecastChart
             currency={currency}
             labels={labels}
@@ -86,14 +86,14 @@ export function CashFlowOverview({
           />
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
           <p>
             Estimate based on outstanding invoices and unpaid expenses due in the horizon · calculated{" "}
             {new Date(cashFlow.calculatedAt).toLocaleString()}. Not a bank balance.
           </p>
           <Link
             href={`/dashboard/forecast?preset=${preset}&horizon=${horizon}`}
-            className="font-semibold text-brand-700 hover:underline dark:text-brand-200"
+            className="font-semibold text-brand-700 hover:underline"
           >
             Open full cash flow →
           </Link>
@@ -105,19 +105,19 @@ export function CashFlowOverview({
 
 export function CashFlowUnavailable({ horizon }: { horizon: ForecastHorizon }) {
   return (
-    <section className="rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/40 dark:border-slate-800 dark:bg-slate-900">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+    <section className="rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/40">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-slate-900 sm:text-base dark:text-slate-100">Cash flow forecast</h2>
+            <h2 className="text-sm font-semibold text-slate-900 sm:text-base">Cash flow forecast</h2>
             <StatusBadge tone="brand">{horizon} days</StatusBadge>
           </div>
-          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+          <p className="mt-0.5 text-xs text-slate-500">
             Forecast data is temporarily unavailable.
           </p>
         </div>
       </div>
-      <div className="px-5 py-6 text-sm text-slate-600 dark:text-slate-300">
+      <div className="px-5 py-6 text-sm text-slate-600">
         We couldn&apos;t load the cash flow projection right now. Other dashboard sections may still be available.
       </div>
     </section>

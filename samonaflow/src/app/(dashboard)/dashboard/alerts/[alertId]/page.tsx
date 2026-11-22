@@ -23,7 +23,7 @@ export const metadata = { title: "Alert" };
 export const instant = false;
 
 const ACTION_LINK_CLASS =
-  "rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:border-neutral-700 dark:hover:bg-neutral-800";
+  "rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900";
 
 export default async function AlertDetailPage({
   params,
@@ -77,24 +77,24 @@ export default async function AlertDetailPage({
 
       <section
         aria-labelledby="alert-description"
-        className="mt-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800"
+        className="mt-6 rounded-lg border border-neutral-200 p-4"
       >
         <h2 id="alert-description" className="text-sm font-semibold">
           What happened
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
+        <p className="mt-2 text-sm leading-relaxed text-neutral-700">
           {alert.description}
         </p>
       </section>
 
       <section
         aria-labelledby="alert-recommendation"
-        className="mt-4 rounded-lg border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900"
+        className="mt-4 rounded-lg border border-neutral-200 bg-white p-4"
       >
         <h2 id="alert-recommendation" className="text-sm font-semibold">
           Recommended action
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
+        <p className="mt-2 text-sm leading-relaxed text-neutral-700">
           {alert.recommendedAction}
         </p>
       </section>
@@ -102,7 +102,7 @@ export default async function AlertDetailPage({
       {related ? (
         <section
           aria-labelledby="alert-related"
-          className="mt-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800"
+          className="mt-4 rounded-lg border border-neutral-200 p-4"
         >
           <h2 id="alert-related" className="text-sm font-semibold">
             Related record
@@ -115,7 +115,7 @@ export default async function AlertDetailPage({
           ) : null}
         </section>
       ) : (
-        <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+        <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           The related record is no longer available in this business. The alert is
           kept as history; the recommended action may no longer apply.
         </p>

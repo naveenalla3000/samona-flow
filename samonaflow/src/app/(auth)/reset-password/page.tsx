@@ -23,7 +23,7 @@ export default async function ResetPasswordPage() {
 
       <p className="mt-6 text-center text-sm text-neutral-500">
         Need a new link?{" "}
-        <Link href="/forgot-password" className="font-medium text-neutral-900 underline underline-offset-4 dark:text-neutral-100">
+        <Link href="/forgot-password" className="font-medium text-neutral-900 underline underline-offset-4">
           Request password reset
         </Link>
       </p>

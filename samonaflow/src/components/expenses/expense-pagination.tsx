@@ -37,7 +37,7 @@ export function ExpensePagination({
         {query.page > 1 ? (
           <Link
             href={pageHref(query, query.page - 1)}
-            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
             aria-label="Previous page"
           >
             Previous
@@ -46,7 +46,7 @@ export function ExpensePagination({
         {query.page < totalPages ? (
           <Link
             href={pageHref(query, query.page + 1)}
-            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
             aria-label="Next page"
           >
             Next

@@ -140,7 +140,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
     actions.status === "fulfilled" ? actions.value : null;
 
   return (
-    <main className="min-h-full bg-slate-50">
+    <main className="min-h-full bg-white">
       <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>

@@ -13,7 +13,7 @@ export default function DashboardError({ error, reset }: DashboardErrorProps) {
   }, [error]);
 
   return (
-    <main className="min-h-full bg-slate-50 px-4 py-16">
+    <main className="min-h-full bg-white px-4 py-16">
       <div className="mx-auto w-full max-w-lg rounded-xl border border-red-200 bg-white p-8 text-center shadow-sm">
         <h1 className="text-xl font-semibold text-slate-900">
           We could not load the dashboard.

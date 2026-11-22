@@ -49,7 +49,7 @@ export function BusinessOnboardingForm({ defaultEmail }: Props) {
       {state.status === "error" && state.message ? (
         <div
           role="alert"
-          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
         >
           {state.message}
         </div>
@@ -120,7 +120,7 @@ export function BusinessOnboardingForm({ defaultEmail }: Props) {
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-brand-700 px-5 text-sm font-medium text-white shadow-sm transition hover:bg-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-brand-600 dark:hover:bg-brand-500"
+        className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-brand-700 px-5 text-sm font-medium text-white shadow-sm transition hover:bg-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {pending ? "Creating workspace..." : "Create business workspace"}
       </button>
@@ -129,7 +129,7 @@ export function BusinessOnboardingForm({ defaultEmail }: Props) {
 }
 
 const inputClassName =
-  "h-12 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-brand-400 dark:focus:ring-brand-400/15";
+  "h-12 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10";
 
 function Field({
   label,
@@ -157,7 +157,7 @@ function Field({
   const id = `business-${name}`;
   return (
     <label className={`block text-sm ${className ?? ""}`}>
-      <span className="mb-1.5 block font-medium text-slate-700 dark:text-slate-200">{label}</span>
+      <span className="mb-1.5 block font-medium text-slate-700">{label}</span>
       <input
         id={id}
         name={name}
@@ -169,10 +169,10 @@ function Field({
         readOnly={readOnly}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
-        className={`${inputClassName} ${readOnly ? "cursor-not-allowed bg-slate-50 text-slate-500 dark:bg-slate-900 dark:text-slate-400" : ""}`}
+        className={`${inputClassName} ${readOnly ? "cursor-not-allowed bg-white text-slate-500" : ""}`}
       />
       {error ? (
-        <span id={`${id}-error`} className="mt-1.5 block text-xs text-red-600 dark:text-red-400">
+        <span id={`${id}-error`} className="mt-1.5 block text-xs text-red-600">
           {error}
         </span>
       ) : null}
@@ -202,7 +202,7 @@ function SelectField({
   const id = `business-${name}`;
   return (
     <label className={`block text-sm ${className ?? ""}`}>
-      <span className="mb-1.5 block font-medium text-slate-700 dark:text-slate-200">{label}</span>
+      <span className="mb-1.5 block font-medium text-slate-700">{label}</span>
       <select
         id={id}
         name={name}
@@ -220,7 +220,7 @@ function SelectField({
         ))}
       </select>
       {error ? (
-        <span id={`${id}-error`} className="mt-1.5 block text-xs text-red-600 dark:text-red-400">
+        <span id={`${id}-error`} className="mt-1.5 block text-xs text-red-600">
           {error}
         </span>
       ) : null}

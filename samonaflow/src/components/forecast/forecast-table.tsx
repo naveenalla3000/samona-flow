@@ -10,16 +10,16 @@ export function ForecastTable({
 }) {
   if (weeks.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500 dark:border-neutral-700">
+      <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500">
         No projected balances to display.
       </p>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
+    <div className="overflow-x-auto rounded-lg border border-neutral-200">
       <table className="w-full min-w-[620px] text-left text-sm">
-        <thead className="bg-neutral-50 text-xs uppercase tracking-wide text-neutral-500 dark:bg-neutral-900">
+        <thead className="bg-white text-xs uppercase tracking-wide text-neutral-500">
           <tr>
             <th scope="col" className="px-3 py-2 font-medium">Week</th>
             <th scope="col" className="px-3 py-2 text-right font-medium">Expected incoming</th>
@@ -28,7 +28,7 @@ export function ForecastTable({
             <th scope="col" className="px-3 py-2 text-right font-medium">Closing balance</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+        <tbody className="divide-y divide-neutral-200">
           {weeks.map((week) => (
             <tr key={week.weekStart}>
               <td className="px-3 py-2 tabular-nums">

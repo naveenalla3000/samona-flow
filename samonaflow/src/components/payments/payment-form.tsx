@@ -6,13 +6,13 @@ import { METHOD_LABELS } from "./payment-layout";
 import type { PaymentFormState } from "@/types/payment-form";
 
 const INPUT_CLASS =
-  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 dark:border-neutral-700 dark:bg-neutral-900";
-const LABEL_CLASS = "block text-sm font-medium text-neutral-800 dark:text-neutral-200";
+  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10";
+const LABEL_CLASS = "block text-sm font-medium text-neutral-800";
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
   return (
-    <p id={id} role="alert" className="mt-1 text-sm text-red-600 dark:text-red-400">
+    <p id={id} role="alert" className="mt-1 text-sm text-red-600">
       {message}
     </p>
   );
@@ -106,7 +106,7 @@ export function PaymentForm({
       </div>
 
       {state.status === "error" && state.message ? (
-        <p role="alert" className="sm:col-span-2 text-sm text-red-600 dark:text-red-400">
+        <p role="alert" className="sm:col-span-2 text-sm text-red-600">
           {state.message}
         </p>
       ) : null}
@@ -115,7 +115,7 @@ export function PaymentForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-900 disabled:opacity-60 dark:bg-blue-600 dark:text-white"
+          className="rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-900 disabled:opacity-60"
         >
           {pending ? "Recording…" : "Record payment"}
         </button>

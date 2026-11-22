@@ -103,15 +103,15 @@ function SummaryTile({
 }) {
   const toneClass =
     tone === "critical"
-      ? "text-red-700 dark:text-red-400"
+      ? "text-red-700"
       : tone === "warning"
-        ? "text-amber-700 dark:text-amber-400"
+        ? "text-amber-700"
         : tone === "info"
-          ? "text-sky-700 dark:text-sky-400"
-          : "text-neutral-900 dark:text-neutral-100";
+          ? "text-sky-700"
+          : "text-neutral-900";
 
   return (
-    <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+    <div className="rounded-lg border border-neutral-200 p-4">
       <p className="text-xs uppercase tracking-wide text-neutral-500">{label}</p>
       <p className={`mt-1 text-2xl font-semibold ${toneClass}`}>{value}</p>
     </div>

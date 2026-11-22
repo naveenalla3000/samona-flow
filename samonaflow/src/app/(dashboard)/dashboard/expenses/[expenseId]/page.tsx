@@ -54,7 +54,7 @@ export default async function ExpenseDetailPage({
         action={
           <Link
             href="/dashboard/expenses"
-            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:border-neutral-700 dark:hover:bg-neutral-800"
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
           >
             All expenses
           </Link>
@@ -63,17 +63,17 @@ export default async function ExpenseDetailPage({
 
       <section aria-labelledby="expense-summary" className="mt-6 grid gap-3 sm:grid-cols-2">
         <h2 id="expense-summary" className="sr-only">Expense summary</h2>
-        <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="rounded-lg border border-neutral-200 p-4">
           <p className="text-xs uppercase tracking-wide text-neutral-500">Amount</p>
           <p className="mt-1 text-xl font-semibold tabular-nums">{expense.currency} {expense.amount}</p>
           <p className="mt-2"><ExpenseStatusBadge status={expense.displayStatus} /></p>
           {expense.displayStatus === "OVERDUE" ? (
-            <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+            <p className="mt-2 text-xs text-amber-700">
               Past due as of the business-local date.
             </p>
           ) : null}
         </div>
-        <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="rounded-lg border border-neutral-200 p-4">
           <p className="text-xs uppercase tracking-wide text-neutral-500">Details</p>
           <dl className="mt-2 space-y-1 text-sm">
             <div className="flex justify-between gap-4"><dt className="text-neutral-500">Due date</dt><dd>{expense.dueDate}</dd></div>
@@ -87,7 +87,7 @@ export default async function ExpenseDetailPage({
       {expense.notes ? (
         <section aria-labelledby="expense-notes" className="mt-6">
           <h2 id="expense-notes" className="text-sm font-semibold">Notes</h2>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-neutral-600 dark:text-neutral-400">{expense.notes}</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-neutral-600">{expense.notes}</p>
         </section>
       ) : null}
 
@@ -95,7 +95,7 @@ export default async function ExpenseDetailPage({
         {editable ? (
           <Link
             href={`/dashboard/expenses/${expense.id}/edit`}
-            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:border-neutral-700 dark:hover:bg-neutral-800"
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
           >
             Edit expense
           </Link>

@@ -26,12 +26,12 @@ export function NoBusinessState() {
   return (
     <main className="mx-auto w-full max-w-5xl px-6 py-12">
       <h1 className="text-2xl font-semibold">Smart alerts</h1>
-      <div className="mt-6 rounded-lg border border-dashed border-neutral-300 p-10 text-center dark:border-neutral-700">
+      <div className="mt-6 rounded-lg border border-dashed border-neutral-300 p-10 text-center">
         <h2 className="text-lg font-medium">No business set up yet</h2>
         <p className="mt-2 text-sm text-neutral-500">
           Create a business before evaluating alerts.
         </p>
-        <Link href="/onboarding" className="mt-4 inline-flex rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 dark:bg-blue-600 dark:text-white">Set up business</Link>
+        <Link href="/onboarding" className="mt-4 inline-flex rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800">Set up business</Link>
       </div>
     </main>
   );
@@ -43,7 +43,7 @@ export function AlertLoadError() {
       <h1 className="text-2xl font-semibold">Smart alerts</h1>
       <div
         role="alert"
-        className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+        className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
       >
         We couldn&apos;t load alerts right now. Please try again.
       </div>
@@ -52,9 +52,9 @@ export function AlertLoadError() {
 }
 
 const SEVERITY_STYLES: Record<AlertSeverityValue, string> = {
-  INFO: "bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-300",
-  WARNING: "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300",
-  CRITICAL: "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300",
+  INFO: "bg-sky-100 text-sky-800",
+  WARNING: "bg-amber-100 text-amber-800",
+  CRITICAL: "bg-red-100 text-red-800",
 };
 
 export const SEVERITY_BORDER: Record<AlertSeverityValue, string> = {
@@ -80,9 +80,9 @@ export function AlertSeverityBadge({ severity }: { severity: AlertSeverityValue 
 }
 
 const STATUS_STYLES: Record<AlertStatusValue, string> = {
-  ACTIVE: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300",
-  RESOLVED: "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400",
-  DISMISSED: "bg-neutral-100 text-neutral-500 line-through dark:bg-neutral-800 dark:text-neutral-500",
+  ACTIVE: "bg-emerald-100 text-emerald-800",
+  RESOLVED: "bg-neutral-100 text-neutral-600",
+  DISMISSED: "bg-neutral-100 text-neutral-500 line-through",
 };
 
 const STATUS_LABELS: Record<AlertStatusValue, string> = {

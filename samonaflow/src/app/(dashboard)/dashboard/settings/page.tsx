@@ -141,18 +141,7 @@ export default async function BusinessSettingsPage() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm shadow-sm">
-            <h2 className="font-semibold text-slate-900">Need another workspace?</h2>
-            <p className="mt-2 text-slate-600">
-              Each business has its own customers, invoices and financial history.
-            </p>
-            <Link
-              href="/onboarding"
-              className="mt-3 inline-block font-medium text-blue-800 underline underline-offset-4 hover:text-blue-900"
-            >
-              Add another business
-            </Link>
-          </div>
+
         </aside>
       </div>
     </main>

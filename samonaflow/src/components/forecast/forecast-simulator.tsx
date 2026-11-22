@@ -25,14 +25,14 @@ import {
 } from "./forecast-simulation-labels";
 
 const FIELD_CLASS =
-  "mt-1 w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100";
-const LABEL_CLASS = "block text-sm font-medium text-neutral-800 dark:text-neutral-200";
+  "mt-1 w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 disabled:opacity-60";
+const LABEL_CLASS = "block text-sm font-medium text-neutral-800";
 const PRIMARY_BUTTON_CLASS =
-  "rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-blue-600 dark:text-white dark:hover:bg-neutral-300";
+  "rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60";
 const SECONDARY_BUTTON_CLASS =
-  "rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800";
+  "rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60";
 const REMOVE_BUTTON_CLASS =
-  "rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40";
+  "rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50";
 
 const AMOUNT_TYPES = new Set<ForecastAdjustmentType>([
   "change_amount",
@@ -507,7 +507,7 @@ export function ForecastSimulator({
           </div>
 
           {formError ? (
-            <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+            <p role="alert" className="text-sm text-red-600">
               {formError}
             </p>
           ) : null}
@@ -517,16 +517,16 @@ export function ForecastSimulator({
           </button>
         </form>
 
-        <div className="mt-6 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+        <div className="mt-6 border-t border-neutral-200 pt-4">
           <h3 className="text-sm font-semibold">
             Scenario adjustments ({adjustments.length})
           </h3>
           {adjustments.length === 0 ? (
-            <p className="mt-2 rounded-lg border border-dashed border-neutral-300 p-4 text-sm text-neutral-500 dark:border-neutral-700">
+            <p className="mt-2 rounded-lg border border-dashed border-neutral-300 p-4 text-sm text-neutral-500">
               No hypothetical changes yet. Running with an empty scenario reproduces the baseline.
             </p>
           ) : (
-            <ul className="mt-2 divide-y divide-neutral-200 dark:divide-neutral-800">
+            <ul className="mt-2 divide-y divide-neutral-200">
               {adjustments.map((adjustment) => (
                 <li
                   key={adjustment.id}
@@ -576,7 +576,7 @@ export function ForecastSimulator({
         {requestError ? (
           <div
             role="alert"
-            className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+            className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
           >
             <p>{requestError}</p>
             {fieldErrorMessages.length > 0 ? (
@@ -597,7 +597,7 @@ export function ForecastSimulator({
           title="Simulation results"
           description="Run the scenario to compare the simulated cash position with the unchanged baseline."
         >
-          <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500 dark:border-neutral-700">
+          <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500">
             No simulation has been run yet.
           </p>
         </ForecastSection>

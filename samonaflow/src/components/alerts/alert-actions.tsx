@@ -11,7 +11,7 @@ import {
 import type { AlertRecord } from "@/types/alert";
 
 const BUTTON_CLASS =
-  "rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 disabled:opacity-60 dark:border-neutral-700 dark:hover:bg-neutral-800";
+  "rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 disabled:opacity-60";
 
 export function EvaluateAlertsButton({
   className = "",
@@ -38,7 +38,7 @@ export function EvaluateAlertsButton({
         type="button"
         onClick={run}
         disabled={pending}
-        className="rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-900 disabled:opacity-60 dark:bg-blue-600 dark:text-white"
+        className="rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-900 disabled:opacity-60"
       >
         {pending ? "Evaluating…" : label}
       </button>
@@ -47,8 +47,8 @@ export function EvaluateAlertsButton({
           role={state.ok ? "status" : "alert"}
           className={`mt-2 text-sm ${
             state.ok
-              ? "text-emerald-700 dark:text-emerald-400"
-              : "text-red-600 dark:text-red-400"
+              ? "text-emerald-700"
+              : "text-red-600"
           }`}
         >
           {state.message}
@@ -84,7 +84,7 @@ export function AlertLifecycleActions({ alert }: { alert: AlertRecord }) {
   return (
     <section
       aria-labelledby="alert-actions"
-      className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800"
+      className="rounded-lg border border-neutral-200 p-4"
     >
       <h2 id="alert-actions" className="text-sm font-semibold">
         Alert controls
@@ -129,8 +129,8 @@ export function AlertLifecycleActions({ alert }: { alert: AlertRecord }) {
           role={state.ok ? "status" : "alert"}
           className={`mt-2 text-sm ${
             state.ok
-              ? "text-emerald-700 dark:text-emerald-400"
-              : "text-red-600 dark:text-red-400"
+              ? "text-emerald-700"
+              : "text-red-600"
           }`}
         >
           {state.message}

@@ -4,7 +4,7 @@ import { ADJUSTMENT_TYPE_LABELS } from "./forecast-simulation-labels";
 import { ForecastSection, ForecastStat, Money } from "./forecast-layout";
 
 const TABLE_HEAD_CLASS =
-  "bg-neutral-50 text-xs uppercase tracking-wide text-neutral-500 dark:bg-neutral-900";
+  "bg-white text-xs uppercase tracking-wide text-neutral-500";
 const CELL_CLASS = "px-3 py-2";
 
 function isNegative(value: string): boolean {
@@ -31,7 +31,7 @@ function ShortageAlert({ result }: { result: ForecastSimulationResult }) {
     return (
       <div
         role="alert"
-        className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+        className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
       >
         <strong className="font-semibold">The simulated scenario creates a cash shortage.</strong>{" "}
         The projected balance falls below zero on{" "}
@@ -42,7 +42,7 @@ function ShortageAlert({ result }: { result: ForecastSimulationResult }) {
 
   if (!simulated.becomesNegative && baseline.becomesNegative) {
     return (
-      <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+      <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
         <strong className="font-semibold">The simulated scenario avoids the baseline shortage.</strong>{" "}
         The baseline falls below zero on{" "}
         <span className="tabular-nums">{baseline.shortageDate}</span>; the simulation stays at or
@@ -58,7 +58,7 @@ function ShortageAlert({ result }: { result: ForecastSimulationResult }) {
     simulated.shortageDate < baseline.shortageDate
   ) {
     return (
-      <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+      <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
         Both scenarios become negative, but the simulated shortage starts earlier:{" "}
         <span className="tabular-nums">{simulated.shortageDate}</span> instead of{" "}
         <span className="tabular-nums">{baseline.shortageDate}</span>.
@@ -73,7 +73,7 @@ function ShortageAlert({ result }: { result: ForecastSimulationResult }) {
     simulated.shortageDate > baseline.shortageDate
   ) {
     return (
-      <div className="rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-300">
+      <div className="rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
         Both scenarios become negative, but the simulated shortage starts later:{" "}
         <span className="tabular-nums">{simulated.shortageDate}</span> instead of{" "}
         <span className="tabular-nums">{baseline.shortageDate}</span>.
@@ -85,7 +85,7 @@ function ShortageAlert({ result }: { result: ForecastSimulationResult }) {
     return (
       <div
         role="alert"
-        className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+        className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
       >
         Both scenarios become negative on{" "}
         <span className="tabular-nums">{simulated.shortageDate}</span>. The simulated scenario does
@@ -95,7 +95,7 @@ function ShortageAlert({ result }: { result: ForecastSimulationResult }) {
   }
 
   return (
-    <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+    <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
       No negative projected balance in either the baseline or the simulated scenario.
     </div>
   );
@@ -200,7 +200,7 @@ export function ForecastSimulationResults({ result }: { result: ForecastSimulati
         description="These changes exist only in this response. No financial record was written."
       >
         {adjustments.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500 dark:border-neutral-700">
+          <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500">
             No adjustments were applied. The simulation reproduces the baseline.
           </p>
         ) : (
@@ -216,7 +216,7 @@ export function ForecastSimulationResults({ result }: { result: ForecastSimulati
                   <th scope="col" className={`${CELL_CLASS} font-medium`}>Date change</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+              <tbody className="divide-y divide-neutral-200">
                 {adjustments.map((adjustment) => (
                   <tr key={adjustment.id}>
                     <td className={`${CELL_CLASS} whitespace-nowrap font-medium`}>
@@ -248,11 +248,11 @@ export function ForecastSimulationResults({ result }: { result: ForecastSimulati
         description="Baseline and simulated closing balances for every day in the horizon."
       >
         {daily.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500 dark:border-neutral-700">
+          <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500">
             No projected balances to display.
           </p>
         ) : (
-          <div className="max-h-[420px] overflow-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
+          <div className="max-h-[420px] overflow-auto rounded-lg border border-neutral-200">
             <table className="w-full min-w-[900px] text-left text-sm">
               <thead className={`${TABLE_HEAD_CLASS} sticky top-0 z-10`}>
                 <tr>
@@ -266,7 +266,7 @@ export function ForecastSimulationResults({ result }: { result: ForecastSimulati
                   <th scope="col" className={`${CELL_CLASS} text-right font-medium`}>Balance change</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+              <tbody className="divide-y divide-neutral-200">
                 {daily.map((day) => (
                   <tr key={day.date}>
                     <td className={`${CELL_CLASS} whitespace-nowrap font-medium`}>{day.date}</td>

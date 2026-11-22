@@ -49,7 +49,7 @@ export function UpcomingExpensesPanel({
               <caption className="sr-only">
                 Unpaid expenses ordered overdue first, then by due date.
               </caption>
-              <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <thead className="border-b border-slate-200 bg-white text-xs uppercase tracking-wide text-slate-500">
                 <tr>
                   <th scope="col" className="px-4 py-2.5 font-medium">Description</th>
                   <th scope="col" className="px-4 py-2.5 font-medium">Category</th>
