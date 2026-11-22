@@ -1,173 +1,96 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ForecastChart } from "@/components/forecast/forecast-chart";
-import type { DashboardCashFlow, DashboardPeriod } from "@/types/dashboard";
-import {
-  DashboardSection,
-  formatMajor,
-  HorizonSelector,
-  InlineLink,
-  isNegativeMajor,
-  isPositiveMajor,
-  type Tone,
-} from "./dashboard-ui";
+import { parseSignedMoney } from "@/lib/invoice-math";
+import type { DashboardCashFlowOverview } from "@/types/dashboard";
+import { formatDashboardMoney, StatusBadge } from "./dashboard-ui";
 
-const TONE_TEXT: Record<Tone, string> = {
-  neutral: "text-slate-900",
-  primary: "text-blue-900",
-  positive: "text-emerald-700",
-  warning: "text-amber-700",
-  negative: "text-red-700",
-};
+function money(value: string, currency: string): string {
+  return formatDashboardMoney(parseSignedMoney(value), currency);
+}
 
-function CashFlowStat({
-  label,
-  value,
-  helper,
-  tone = "neutral",
-}: {
-  label: string;
-  value: string;
-  helper?: string;
-  tone?: Tone;
-}) {
+function ForecastStat({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "positive" | "negative" }) {
+  const color =
+    tone === "positive"
+      ? "text-positive dark:text-emerald-300"
+      : tone === "negative"
+        ? "text-negative dark:text-red-300"
+        : "text-slate-900 dark:text-slate-50";
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-      <p className={`mt-1 text-lg font-semibold tabular-nums ${TONE_TEXT[tone]}`}>{value}</p>
-      {helper ? <p className="mt-0.5 text-xs text-slate-500">{helper}</p> : null}
+    <div className="rounded-xl bg-slate-50 px-3 py-3 dark:bg-slate-800/60">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
+      <p className={`mt-1 text-sm font-semibold tabular-nums sm:text-base ${color}`}>{value}</p>
     </div>
   );
 }
 
 export function CashFlowOverview({
-  cashFlow,
-  preset,
-  horizon,
+  overview,
+  action,
 }: {
-  cashFlow: DashboardCashFlow;
-  preset: DashboardPeriod;
-  horizon: number;
+  overview: DashboardCashFlowOverview;
+  action?: ReactNode;
 }) {
-  const currency = cashFlow.currency;
-  const incomingTone: Tone = isPositiveMajor(cashFlow.expectedIncoming) ? "positive" : "neutral";
-  const outgoingTone: Tone = isPositiveMajor(cashFlow.expectedOutgoing) ? "negative" : "neutral";
-  const closingTone: Tone = isNegativeMajor(cashFlow.projectedClosing) ? "negative" : "positive";
-  const lowestTone: Tone = isNegativeMajor(cashFlow.lowestProjectedBalance)
-    ? "negative"
-    : "neutral";
+  const currency = overview.currency;
+  const labels = overview.daily.map((day) => day.date.slice(5));
 
   return (
-    <DashboardSection
-      id="cash-flow-overview"
-      title="Cash-flow overview"
-      description={`Deterministic ${cashFlow.horizonDays}-day projection from ${cashFlow.startDate} to ${cashFlow.endDate}. This is an estimate, not a bank balance.`}
-      action={<HorizonSelector horizon={horizon} preset={preset} />}
-    >
-      <div className="space-y-4">
-        {cashFlow.becomesNegative && cashFlow.shortageDate ? (
-          <div
-            role="alert"
-            className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-          >
-            <strong className="font-semibold">Potential cash shortage.</strong> The projected
-            balance may fall below zero on{" "}
-            <span className="font-semibold tabular-nums">{cashFlow.shortageDate}</span>. Review the
-            full forecast before committing new expenses.
+    <section className="rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/40 dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-slate-900 sm:text-base dark:text-slate-100">Cash flow forecast</h2>
+            <StatusBadge tone="brand">{overview.horizonDays} days</StatusBadge>
           </div>
-        ) : (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            The projected balance stays at or above zero for this horizon.
-          </div>
-        )}
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+            {overview.startDate} → {overview.endDate} · business-local dates
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">{action}</div>
+      </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <CashFlowStat
-            label="Current cash"
-            value={formatMajor(cashFlow.currentCash, currency)}
-            helper="Opening balance plus recorded movements"
-            tone={isNegativeMajor(cashFlow.currentCash) ? "negative" : "primary"}
-          />
-          <CashFlowStat
-            label="Expected in"
-            value={formatMajor(cashFlow.expectedIncoming, currency)}
-            helper="Outstanding receivable balances"
-            tone={incomingTone}
-          />
-          <CashFlowStat
-            label="Expected out"
-            value={formatMajor(cashFlow.expectedOutgoing, currency)}
-            helper="Unpaid expenses in the horizon"
-            tone={outgoingTone}
-          />
-          <CashFlowStat
-            label="Projected closing"
-            value={formatMajor(cashFlow.projectedClosing, currency)}
-            helper={`Ends ${cashFlow.endDate}`}
-            tone={closingTone}
-          />
-          <CashFlowStat
-            label="Lowest balance"
-            value={formatMajor(cashFlow.lowestProjectedBalance, currency)}
-            helper={`On ${cashFlow.lowestProjectedDate}`}
-            tone={lowestTone}
-          />
-          <CashFlowStat
-            label="Shortage indicator"
-            value={
-              cashFlow.becomesNegative && cashFlow.shortageDate
-                ? `Shortfall on ${cashFlow.shortageDate}`
-                : "No shortfall"
-            }
-            helper={
-              cashFlow.becomesNegative
-                ? "The projected balance becomes negative"
-                : "Projected balance stays at or above zero"
-            }
-            tone={cashFlow.becomesNegative ? "negative" : "positive"}
+      <div className="space-y-5 px-5 py-4">
+        {overview.becomesNegative ? (
+          <div
+            role="status"
+            className="flex flex-wrap items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-100"
+          >
+            <StatusBadge tone="negative">Shortage projected</StatusBadge>
+            <span>
+              Balance turns negative on <strong>{overview.shortageDate ?? "the forecast horizon"}</strong>.
+            </span>
+          </div>
+        ) : null}
+
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <ForecastStat label="Current cash" value={money(overview.currentCash, currency)} />
+          <ForecastStat label="Expected incoming" value={money(overview.expectedIncoming, currency)} tone="positive" />
+          <ForecastStat label="Expected outgoing" value={money(overview.expectedOutgoing, currency)} tone="negative" />
+          <ForecastStat label="Projected closing balance" value={money(overview.projectedClosingBalance, currency)} tone={overview.becomesNegative ? "negative" : "neutral"} />
+          <ForecastStat label="Lowest projected balance" value={money(overview.lowestProjectedBalance, currency)} tone={parseSignedMoney(overview.lowestProjectedBalance) < BigInt(0) ? "negative" : "neutral"} />
+          <ForecastStat label="Lowest balance on" value={overview.lowestProjectedDate} />
+        </div>
+
+        <div className="rounded-xl border border-slate-100 p-2 dark:border-slate-800">
+          <ForecastChart
+            currency={currency}
+            labels={labels}
+            incoming={overview.daily.map((day) => Number(day.incoming))}
+            outgoing={overview.daily.map((day) => Number(day.outgoing))}
+            balance={overview.daily.map((day) => Number(day.projectedBalance))}
           />
         </div>
 
-        <ForecastChart
-          currency={currency}
-          labels={cashFlow.series.map((point) => point.date)}
-          incoming={cashFlow.series.map((point) => Number(point.incoming))}
-          outgoing={cashFlow.series.map((point) => Number(point.outgoing))}
-          balance={cashFlow.series.map((point) => Number(point.balance))}
-        />
-
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs text-slate-500">
-            Calculated {cashFlow.calculatedAt.slice(0, 16).replace("T", " ")} UTC.
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
+          <p>
+            Estimate based on outstanding invoices and unpaid expenses due in the horizon · calculated{" "}
+            {new Date(overview.calculatedAt).toLocaleString()}. Not a bank balance.
           </p>
-          <Link
-            href={`/dashboard/forecast?horizon=${horizon}`}
-            className="text-sm font-medium text-blue-800 underline-offset-2 hover:underline"
-          >
-            Open full cash-flow forecast
+          <Link href="/dashboard/forecast" className="font-semibold text-brand-700 hover:underline dark:text-brand-200">
+            Open full cash flow →
           </Link>
         </div>
       </div>
-    </DashboardSection>
-  );
-}
-
-export function CashFlowUnavailable({ horizon }: { horizon: number }) {
-  return (
-    <DashboardSection
-      id="cash-flow-overview"
-      title="Cash-flow overview"
-      description="Projection of current cash, expected receipts and upcoming expenses."
-    >
-      <div
-        role="alert"
-        className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-      >
-        <p className="font-medium">The cash-flow overview could not be loaded.</p>
-        <p className="mt-1">
-          The projection depends on the same records as the{" "}
-          <InlineLink href={`/dashboard/forecast?horizon=${horizon}`}>full forecast</InlineLink>.
-        </p>
-      </div>
-    </DashboardSection>
+    </section>
   );
 }

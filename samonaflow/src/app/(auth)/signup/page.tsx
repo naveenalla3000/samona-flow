@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { sanitizeNextPath } from "@/lib/auth/safe-redirect";
 import { getCurrentUser } from "@/server/auth/get-current-user";
+import { AuthShell } from "@/components/auth/auth-shell";
 import { SignupForm } from "@/components/auth/signup-form";
 
 // Session and searchParams are request-time data and cannot be prerendered.
@@ -21,7 +22,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
   }
 
   return (
-    <>
+    <AuthShell>
       <h1 className="text-xl font-semibold">Create your account</h1>
       <p className="mt-1 text-sm text-neutral-500">
         Start managing your finances with samonaFlow.
@@ -38,6 +39,6 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
           Sign in
         </Link>
       </p>
-    </>
+    </AuthShell>
   );
 }

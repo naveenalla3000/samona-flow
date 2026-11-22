@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useActionState, useState, type ChangeEvent } from "react";
+import { startTransition, useActionState, useState, type ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import {
   REMINDER_TYPES,
@@ -214,7 +214,9 @@ export function ReminderEditForm({
     for (const [key, value] of Object.entries(values)) {
       formData.set(key, value ?? "");
     }
-    formAction(formData);
+    startTransition(() => {
+      formAction(formData);
+    });
   });
 
   return (

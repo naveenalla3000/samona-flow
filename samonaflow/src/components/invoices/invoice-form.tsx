@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useActionState } from "react";
+import { startTransition, useActionState } from "react";
 import { type Resolver, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { calculateInvoiceTotals } from "@/lib/invoice-math";
 import { createInvoiceSchema } from "@/lib/validations/invoice";
@@ -70,8 +70,9 @@ export function InvoiceForm({
     formData.set("customerId", submitted.customerId ?? "");
     formData.set("issueDate", submitted.issueDate ?? "");
     formData.set("dueDate", submitted.dueDate ?? "");
-    formData.set("currency", submitted.currency ?? "");
-    formData.set("notes", submitted.notes ?? "");
+    formData.set("expectedPaymentDate", String(submitted.expectedPaymentDate ?? ""));
+    formData.set("currency", String(submitted.currency ?? ""));
+    formData.set("notes", String(submitted.notes ?? ""));
     formData.set("discount", submitted.discount ?? "0.00");
     formData.set("tax", submitted.tax ?? "0.00");
     submitted.items.forEach((item, index) => {
@@ -79,7 +80,9 @@ export function InvoiceForm({
       formData.set(`items.${index}.quantity`, item.quantity ?? "");
       formData.set(`items.${index}.unitPrice`, item.unitPrice ?? "");
     });
-    formAction(formData);
+    startTransition(() => {
+      formAction(formData);
+    });
   });
 
   return (
@@ -153,6 +156,27 @@ export function InvoiceForm({
             <FieldError
               id="dueDate-error"
               message={errors.dueDate?.message ?? state.fieldErrors?.dueDate}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="expectedPaymentDate" className={LABEL_CLASS}>
+              Expected payment date
+            </label>
+            <input
+              id="expectedPaymentDate"
+              type="date"
+              aria-invalid={Boolean(
+                errors.expectedPaymentDate ?? state.fieldErrors?.expectedPaymentDate,
+              )}
+              className={`${FIELD_CLASS} mt-1`}
+              {...register("expectedPaymentDate")}
+            />
+            <FieldError
+              id="expectedPaymentDate-error"
+              message={
+                errors.expectedPaymentDate?.message ?? state.fieldErrors?.expectedPaymentDate
+              }
             />
           </div>
 

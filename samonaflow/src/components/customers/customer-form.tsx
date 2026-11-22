@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useActionState } from "react";
+import { startTransition, useActionState } from "react";
 import { useForm } from "react-hook-form";
 import { createCustomerSchema } from "@/lib/validations/customer";
 import type { CustomerFormState, CustomerFormValues } from "@/types/customer-form";
@@ -48,7 +48,9 @@ export function CustomerForm({
     for (const [key, value] of Object.entries(values)) {
       formData.set(key, value ?? "");
     }
-    formAction(formData);
+    startTransition(() => {
+      formAction(formData);
+    });
   });
 
   return (
